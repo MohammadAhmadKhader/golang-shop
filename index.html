@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <h2>Sign In</h2>
+    <form action="api/v1/users/login" method="POST"  id="loginForm">
+        <label for="email">Email:</label>
+        <input type="email" id="email" name="email" required><br><br>
+
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password" required><br><br>
+
+        <button type="submit">Sign In</button>
+    </form>
+
+
+    <h2>Update User</h2>
+    <form id="updateUserForm">
+        <label for="name">Name:</label>
+        <input type="text" id="name" name="name" required><br><br>
+
+        <label for="mobile">Mobile Number:</label>
+        <input type="tel" id="mobile" name="mobile" required><br><br>
+
+        <label for="email">Email:</label>
+        <input type="email" id="email" name="email" required><br><br>
+
+        <button type="submit">Update</button>
+    </form>
+
+    <script>
+        const updateUserForm = document.getElementById('updateUserForm');
+
+        updateUserForm.addEventListener('submit', function(event) {
+            event.preventDefault(); // Prevent the default form submission
+
+            const formData = new FormData(updateUserForm);
+
+            fetch('/user/update', {
+                method: 'PUT',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert('User updated successfully');
+            })
+            .catch(error => {
+                console.error('Error updating user:', error);
+            });
+        });
+    </script>
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async function(event) {
+            event.preventDefault(); // Prevent default form submission
+
+            const formData = new FormData(this); // Collect form data
+
+            try {
+                const response = await fetch('api/v1/users/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: new URLSearchParams(formData).toString()  // Convert FormData to URL-encoded string
+                });
+
+                if (!response.ok) {
+                    throw new Error('Login failed');
+                }
+
+                const result = await response.json();
+                alert('Login successful!'); // Handle success, e.g., redirect
+
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error during login');
+            }
+        });
+    </script>
+</body>
+</html>
