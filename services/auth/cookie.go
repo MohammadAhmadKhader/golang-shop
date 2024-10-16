@@ -5,7 +5,7 @@ import (
 
 	"github.com/gorilla/sessions"
 	"main.go/config"
-	_"main.go/constants"
+	"main.go/constants"
 	"main.go/pkg/models"
 )
 
@@ -30,10 +30,10 @@ func SetCookie(w http.ResponseWriter, r *http.Request, user *models.User, token 
 
 	session.Options = &sessions.Options{
 		MaxAge: CookieMaxAge,
-		//Path:   constants.Prefix,
-		//HttpOnly: true,
-		//Secure: false,
-		//SameSite: http.SameSiteStrictMode,
+		Path:   constants.Prefix,
+		HttpOnly: true,
+		Secure: false,
+		SameSite: http.SameSiteStrictMode,
 	}
 
 	session.Values["userId"] = user.ID

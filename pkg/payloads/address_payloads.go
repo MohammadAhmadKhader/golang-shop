@@ -11,18 +11,18 @@ type CreateAddress struct {
 	FullName string `json:"fullName" validate:"required,min=4,max=32"`
 	City          string  `json:"city" validate:"required,min=3,max=32"`
 	StreetAddress string  `json:"streetAddress" validate:"required,min=4,max=64"`
-	State         *string `json:"state" validate:"min=4,max=32"`
-	ZipCode       *string `json:"zipCode" validate:"min=3,max=12"`
+	State         *string `json:"state" validate:"omitempty,min=4,max=32"`
+	ZipCode       *string `json:"zipCode" validate:"omitempty,min=3,max=12"`
 	Country       string  `json:"country" validate:"required,min=4,max=32"`
 }
 
 type UpdateAddress struct {
-	FullName string `json:"fullName" validate:"min=4,max=32"`
-	City          string  `json:"city" validate:"min=3,max=32"`
-	StreetAddress string  `json:"streetAddress" validate:"min=4,max=64"`
-	State         *string `json:"state" validate:"min=4,max=32"`
-	ZipCode       *string `json:"zipCode" validate:"min=3,max=12"`
-	Country       string  `json:"country" validate:"min=4,max=32"`
+	FullName string `json:"fullName" validate:"omitempty,min=4,max=32"`
+	City          string  `json:"city" validate:"omitempty,min=3,max=32"`
+	StreetAddress string  `json:"streetAddress" validate:"omitempty,min=4,max=64"`
+	State         *string `json:"state" validate:"omitempty,min=4,max=32"`
+	ZipCode       *string `json:"zipCode" validate:"omitempty,min=3,max=12"`
+	Country       string  `json:"country" validate:"omitempty,min=4,max=32"`
 }
 
 func (u *UpdateAddress) IsEmpty() bool {
@@ -87,22 +87,22 @@ func (u *UpdateAddress) TrimStrs() *UpdateAddress {
 func (u *UpdateAddress) Exclude(selectedFields []string) []string {
 	deletedCols := map[string]any{}
 	if u.City == "" {
-		deletedCols[u.City] = 1
+		deletedCols["City"] = 1
 	}
 	if u.StreetAddress == "" {
-		deletedCols[u.StreetAddress] = 1
+		deletedCols["StreetAddress"] = 1
 	}
 	if u.Country == "" {
-		deletedCols[u.Country] = 1
+		deletedCols["Country"] = 1
 	}
 	if u.FullName == "" {
-		deletedCols[u.FullName] = 1
+		deletedCols["FullName"] = 1
 	}
 	if u.State == nil || *u.State == "" {
-		deletedCols[*u.State] = 1
+		deletedCols["State"] = 1
 	}
 	if u.ZipCode == nil || *u.ZipCode == "" {
-		deletedCols[*u.ZipCode] = 1
+		deletedCols["ZipCode"] = 1
 	}
 	
 	selectedFields = slices.DeleteFunc(selectedFields, func(element string) bool {

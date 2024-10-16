@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"main.go/middlewares"
-	"main.go/pkg/models"
 	"main.go/pkg/payloads"
 	"main.go/pkg/utils"
 	"main.go/services/auth"
@@ -24,35 +23,23 @@ func NewHandler(store Store) *Handler {
 var Authenticate = middlewares.Authenticate
 
 func (h *Handler) RegisterRoutes(router *http.ServeMux) {
-	AuthTestMW := middlewares.AuthorizeOwnerShipMW[*models.Cart]("id", "cart id is required", "cart with user id: %v was not found", h.store.GetCartById)
-	router.HandleFunc(utils.RoutePath("GET", "/carts/{userId}"), Authenticate(h.GetCartByUserId))
+	router.HandleFunc(utils.RoutePath("GET", "/carts/"), Authenticate(h.GetUserCart))
 	router.HandleFunc(utils.RoutePath("POST", "/carts"), Authenticate(h.AddToCart))
-	router.HandleFunc(utils.RoutePath("PATCH", "/carts/{id}/{itemId}"), Authenticate(AuthTestMW(h.ChangeCartItemQty)))
-	router.HandleFunc(utils.RoutePath("DELETE", "/carts/{userId}/{itemId}"), Authenticate(h.DeleteCartItemById))
-	router.HandleFunc(utils.RoutePath("DELETE", "/carts/{id}"), Authenticate(h.ClearCart))
+	router.HandleFunc(utils.RoutePath("PATCH", "/carts/{itemId}"), Authenticate(h.ChangeCartItemQty))
+	router.HandleFunc(utils.RoutePath("DELETE", "/carts/{itemId}"), Authenticate(h.DeleteCartItem))
+	router.HandleFunc(utils.RoutePath("DELETE", "/carts"), Authenticate(h.ClearCart))
 }
 
-func (h *Handler) GetCartByUserId(w http.ResponseWriter, r *http.Request) {
-	userId, err := utils.GetValidateId(r, "userId")
+func (h *Handler) GetUserCart(w http.ResponseWriter, r *http.Request) {
+	userId, err := utils.GetUserIdCtx(r)
 	if err != nil {
-		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid id"))
+		auth.Unauthorized(w)
 		return
 	}
 
-	userIdToken, err := utils.GetUserIdFromTokenPayload(r)
-	if err != nil {
-		auth.DenyPermission(w)
-		return
-	}
-
-	cart, err := h.store.GetPopulatedCartByUserId(*userId)
+	cart, err := h.store.GetCartByUserId(*userId)
 	if err != nil {
 		utils.WriteError(w, http.StatusBadRequest, err)
-		return
-	}
-	
-	if cart.UserID != *userIdToken {
-		auth.DenyPermission(w)
 		return
 	}
 
@@ -60,20 +47,19 @@ func (h *Handler) GetCartByUserId(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) AddToCart(w http.ResponseWriter, r *http.Request) {
-	userId, _ := utils.GetUserIdCtx(r)
+	userId, err := utils.GetUserIdCtx(r)
+	if err != nil {
+		auth.Unauthorized(w)
+		return
+	}
+
 	cartPayload, err := utils.ValidateAndParseBody[payloads.AddCartItem](r)
 	if err != nil {
 		utils.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
 
-	cart, err := h.store.GetCartByUserId(*userId)
-	if err != nil {
-		utils.WriteError(w, http.StatusInternalServerError, err)
-		return
-	}
-
-	cartItem, err := h.store.AddToCart(cartPayload, cart.ID)
+	cartItem, err := h.store.AddToCart(cartPayload, *userId)
 	if err != nil {
 		utils.WriteError(w, http.StatusBadRequest, err)
 		return
@@ -86,15 +72,9 @@ func (h *Handler) AddToCart(w http.ResponseWriter, r *http.Request) {
 
 
 func (h *Handler) ChangeCartItemQty(w http.ResponseWriter, r *http.Request) {
-	//cartt, isOk := r.Context().Value(constants.ResourceKey).(*models.Cart)
 	payload, err := utils.ValidateAndParseBody[payloads.ChangeCartItemQty](r)
 	if err != nil {
 		utils.WriteError(w, http.StatusBadRequest, err)
-		return
-	}
-	Id, err := utils.GetValidateId(r, "id")
-	if err != nil {
-		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid cart id"))
 		return
 	}
 	cartItemId, err := utils.GetValidateId(r, "itemId")
@@ -103,19 +83,22 @@ func (h *Handler) ChangeCartItemQty(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cart, err := h.store.GetCartById(*Id)
+	cartItem, err := h.store.GetCartItemById(*cartItemId)
 	if err != nil {
 		utils.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
 
-	userIdToken, err := utils.GetUserIdFromTokenPayload(r)
-	if err != nil || cart.UserID != *userIdToken {
+	userId, err := utils.GetUserIdCtx(r)
+	if err != nil {
+		auth.Unauthorized(w)
+		return
+	} else if cartItem.UserID != *userId {
 		auth.DenyPermission(w)
 		return
 	}
 
-	updatedCartItem, err := h.store.ChangeCartItemQty(cartItemId, payload)
+	updatedCartItem, err := h.store.ChangeCartItemQty(cartItem.Quantity, payload, cartItem)
 	if err != nil {
 		utils.WriteError(w, http.StatusBadRequest, err)
 		return
@@ -124,10 +107,10 @@ func (h *Handler) ChangeCartItemQty(w http.ResponseWriter, r *http.Request) {
 	utils.WriteJSON(w, http.StatusAccepted, map[string]any{"cartItem":updatedCartItem})
 }
 
-func (h *Handler) DeleteCartItemById(w http.ResponseWriter, r *http.Request) {
-	userId, err := utils.GetValidateId(r, "userId")
+func (h *Handler) DeleteCartItem(w http.ResponseWriter, r *http.Request) {
+	userId, err := utils.GetUserIdCtx(r)
 	if err != nil {
-		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid id"))
+		auth.Unauthorized(w)
 		return
 	}
 	cartItemId, err := utils.GetValidateId(r, "itemId")
@@ -136,13 +119,17 @@ func (h *Handler) DeleteCartItemById(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userIdToken, err := utils.GetUserIdFromTokenPayload(r)
-	if err != nil || *userId != *userIdToken {
+	carItem, err := h.store.GetCartItemById(*cartItemId)
+	if err != nil {
+		utils.WriteError(w, http.StatusBadRequest, err)
+		return
+	}
+	if carItem.UserID != *userId {
 		auth.DenyPermission(w)
 		return
 	}
 
-	err = h.store.DeleteCartItemById(*cartItemId)
+	err = h.store.DeleteCartItem(*cartItemId)
 	if err != nil {
 		utils.WriteError(w, http.StatusBadRequest, err)
 		return
@@ -153,24 +140,13 @@ func (h *Handler) DeleteCartItemById(w http.ResponseWriter, r *http.Request) {
 
 
 func (h *Handler) ClearCart(w http.ResponseWriter, r *http.Request) {
-	userIdToken, err := utils.GetUserIdFromTokenPayload(r)
+	userIdToken, err := utils.GetUserIdCtx(r)
 	if err != nil {
 		auth.DenyPermission(w)
-		return
-	}
-
-	cart, err := h.store.GetCartByUserId(*userIdToken)
-	if err != nil {
-		utils.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
 	
-	if cart.UserID != *userIdToken {
-		auth.DenyPermission(w)
-		return
-	}
-
-	err = h.store.ClearCart(cart.ID)
+	err = h.store.ClearCart(*userIdToken)
 	if err != nil {
 		utils.WriteError(w, http.StatusBadRequest, err)
 		return

@@ -87,7 +87,7 @@ func (prodStore *Store) UpdateProduct(id uint, product *models.Product, excluder
 	}
 
 	fields := excluder.Exclude(constants.ProductCols)
-	products, errs := prodStore.Generic.Update(id, product, fields)
+	products, errs := prodStore.Generic.UpdateAndReturn(id, product, fields)
 	if errs != nil {
 		return nil, errs
 	}

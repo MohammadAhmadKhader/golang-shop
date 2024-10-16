@@ -69,7 +69,6 @@ func (userStore *Store) CreateUser(user payloads.UserSignUp) (*models.User, erro
 			Name:     user.Name,
 			Email:    user.Email,
 			Password: hashedPassword,
-			Cart:     &models.Cart{},
 		}
 		err := tx.Create(newUser).Error
 		if err != nil {
@@ -99,7 +98,6 @@ func (userStore *Store) CreateUser(user payloads.UserSignUp) (*models.User, erro
 	if err != nil {
 		return nil, err
 	}
-	newUser.Cart = nil
 
 	return newUser, nil
 }
@@ -114,7 +112,7 @@ func (userStore *Store) UpdatePassword(newHashedPassword, email string) error {
 
 func (userStore *Store) UpdateProfile(id uint, user *models.User, excluder types.Excluder) (*models.User, error) {
 	colsToUpdate := excluder.Exclude(constants.UserUpdateCols)
-	updatedUser, err := userStore.Generic.Update(id, user, colsToUpdate)
+	updatedUser, err := userStore.Generic.UpdateAndReturn(id, user, colsToUpdate)
 	if err != nil {
 		return nil, err
 	}

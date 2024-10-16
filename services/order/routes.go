@@ -27,6 +27,7 @@ var Authenticate = middlewares.Authenticate
 func (h *Handler) RegisterRoutes(router *http.ServeMux) {
 	router.HandleFunc(utils.RoutePath("GET", "/orders/{id}"), Authenticate(h.GetOrderById))
 	router.HandleFunc(utils.RoutePath("GET", "/orders"), Authenticate(h.GetAllOrders))
+	router.HandleFunc(utils.RoutePath("POST", "/orders"), Authenticate(h.CreateOrder))
 	router.HandleFunc(utils.RoutePath("DELETE", "/orders/{id}"), Authenticate(h.CancelOrderById))
 	router.HandleFunc(utils.RoutePath("PATCH", "/orders/{id}/status"), Authenticate(h.UpdateOrderStatusById))
 }
@@ -53,12 +54,12 @@ func (h *Handler) GetAllOrders(w http.ResponseWriter, r *http.Request) {
 	conditions := utils.GetFilterConditions(r, whiteListedParams)
 	sortString := utils.GetSortQ(r, whiteListedSortParams)
 
-	orders, count, errs := utils.GenericFilterWithJoins[models.Order, GetAllOrdersRow](&utils.GenericFilterConfigWithJoins{
+	orders, count, errs := utils.GenericFilterWithJoins[models.Order, GetAllOrdersRows](&utils.GenericFilterConfigWithJoins{
 		DB:                h.store.DB,
 		Filters:           conditions,
 		SortQ:             sortString,
-		SelectQ:           selectQ,
-		Joins:             []string{joinWOrderItems, joinWProducts},
+		SelectQ:           selectAllOrdersQ,
+		Joins:             []string{jointWAddress,joinWOrderItemsCount},
 		Pagination:        pagination,
 		WhiteListedParams: whiteListedParams,
 	})
@@ -74,7 +75,7 @@ func (h *Handler) GetAllOrders(w http.ResponseWriter, r *http.Request) {
 		"orders": convertRowsToResp(orders),
 	})
 }
-// ! add validation if the address exist and append it
+
 func (h *Handler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	userId, err := utils.GetUserIdFromTokenPayload(r)
 	if err != nil {
@@ -99,7 +100,7 @@ func (h *Handler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cart, err := h.store.GetCartWithOrderItems(*userId)
+	cart, err := h.store.GetCart(*userId)
 	if err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
@@ -110,22 +111,37 @@ func (h *Handler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		// most likely at this point user is hacking so error 500 is returned
 		utils.WriteError(w, http.StatusInternalServerError, err)
-		return 
+		return
 	}
 	totalPrice, err := h.store.ValidateAndCalTotalPrice(prods, orderItems)
 	if err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
-	
-	var order models.Order
-	order.AddressID = coPayload.AddressId
-	err = h.store.CreateOrderWithItems(&order, cart.ID, userId, totalPrice, orderItems)
+
+	order:= models.Order{
+		AddressID: address.ID,
+		UserID: *userId,
+		TotalPrice: *totalPrice,
+	}
+
+	cartItemsCount, err := h.store.GetCartItemsCount(*userId)
 	if err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
+	if *cartItemsCount == 0 {
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("you have no cart items"))
+		return
+	}
 
+	err = h.store.CreateOrderWithItems(&order, userId, orderItems)
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err)
+		return
+	}
+	order.TotalPrice = utils.TruncateToTwoDecimals(order.TotalPrice)
+		
 	utils.WriteJSON(w, http.StatusCreated, map[string]any{"order": order})
 }
 

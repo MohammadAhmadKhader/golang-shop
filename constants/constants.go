@@ -4,7 +4,7 @@ import "main.go/types"
 
 const (
 	Prefix       = "/api/v1"
-	TokenPayload = types.TokenKey("tokenPayload")
+	TokenPayload = types.TokenKey("TokenPayload")
 	UserKey = types.UserKey("UserKey")
 	ResourceKey = types.AuthorizedResource("AuthorizedResource")
 )
@@ -21,7 +21,8 @@ var (
 	UserCreateCols = []string{"Name", "Email", "Password"}
 	UserUpdateCols = []string{"Name", "Email", "MobileNumber"}
 	RoleCols = []string{"Role"}
-	AddressCols = []string{"FullName","Country","StreetAddress","City","ZipCode","State"}
+	AddressCreateCols = []string{"FullName","Country","StreetAddress","City","ZipCode","State","UserID"}
+	AddressUpdateCols = []string{"FullName","Country","StreetAddress","City","ZipCode","State"}
 )
 
  

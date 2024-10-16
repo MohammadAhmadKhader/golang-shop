@@ -55,7 +55,7 @@ func (cateStore *Store) UpdateCategory(id uint, category *models.Category) (*mod
 		return nil, err
 	}
 	
-	uCategory, err := cateStore.Generic.Update(id, category, constants.CategoryCols)
+	uCategory, err := cateStore.Generic.UpdateAndReturn(id, category, constants.CategoryCols)
 	if err != nil {
 		return nil, err
 	}

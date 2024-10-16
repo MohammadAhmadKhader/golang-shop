@@ -1,7 +1,6 @@
 package review
 
 import (
-	"fmt"
 
 	"gorm.io/gorm"
 	"main.go/constants"
@@ -49,7 +48,7 @@ func (reviewStore *Store) UpdateReview(id uint, updatePayload *models.Review, ex
 	}
 
 	uCols := excluder.Exclude(constants.CommentCols)
-	review, err := reviewStore.Generic.Update(id, updatePayload, uCols)
+	review, err := reviewStore.Generic.UpdateAndReturn(id, updatePayload, uCols)
 	if err != nil {
 		return nil, err
 	}
@@ -66,19 +65,9 @@ func (reviewStore *Store) CreateReview(createPayload *models.Review) (*models.Re
 	return review, nil
 }
 
-//func (reviewStore *Store) SoftDeleteReview(Id uint) error {
-//	notFoundErr := fmt.Errorf("review with id: '%v' is not found", Id)
-//	err := reviewStore.Generic.SoftDelete(Id, notFoundErr)
-//	if err != nil {
-//		return err
-//	}
-//
-//	return nil
-//}
-
 func (reviewStore *Store) HardDeleteReview(Id uint, userId uint) error {
-	notFoundErr := fmt.Errorf("review with id: '%v' is not found", Id)
-	err := reviewStore.Generic.HardDeleteWithUserId(Id, userId, notFoundErr)
+	notFoundMsg := "review with id: '%v' is not found"
+	err := reviewStore.Generic.HardDeleteWithUserId(Id, userId, notFoundMsg)
 	if err != nil {
 		return err
 	}

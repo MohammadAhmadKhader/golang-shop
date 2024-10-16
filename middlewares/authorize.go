@@ -50,7 +50,7 @@ type UserIdGetter interface {
 
 
 // not found error expected to have a place holder ("%v") inside the message
-func AuthorizeOwnerShipMW[TModel UserIdGetter](param, idIsRequiredErrMsg, notFoundErr string, modelGetter func(id uint) (TModel,error)) func(next http.HandlerFunc) http.HandlerFunc {
+func AuthorizeUser[TModel UserIdGetter](param, idIsRequiredErrMsg, notFoundErr string, modelGetter func(id uint) (TModel,error)) func(next http.HandlerFunc) http.HandlerFunc {
 	return func(next http.HandlerFunc) http.HandlerFunc {
 		return http.HandlerFunc(func (w http.ResponseWriter, r *http.Request)  {
 			resourceId, err := utils.GetValidateId(r, param)
@@ -75,40 +75,11 @@ func AuthorizeOwnerShipMW[TModel UserIdGetter](param, idIsRequiredErrMsg, notFou
 				return
 			}
 
-			ctx := r.Context()
-			ctx = context.WithValue(ctx, constants.UserKey, model)
-			ctx = context.WithValue(ctx, constants.ResourceKey, model)
+			ctx := context.WithValue(r.Context(), constants.ResourceKey, model)
 			
 			r = r.WithContext(ctx)
 
 			next.ServeHTTP(w, r)
 		})
 	}
-}
-
-// * Deprecated
-func AuthorizeUser(next http.HandlerFunc) http.HandlerFunc {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		userId, err := utils.GetValidateId(r, constants.IdUrlPathKey)
-		if err != nil {
-			utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid user id"))
-			return
-		}
-	
-		userIdToken, err := utils.GetUserIdFromTokenPayload(r)
-		if err != nil {
-			auth.Unauthorized(w)
-			return
-		}
-
-		if *userId != *userIdToken {
-			auth.DenyPermission(w)
-			return
-		}
-
-		//ctx := context.WithValue(r.Context(), constants.UserKey , *userIdToken)
-		//r = r.WithContext(ctx)
-
-		next.ServeHTTP(w, r)
-	})
 }

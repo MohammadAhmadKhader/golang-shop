@@ -45,7 +45,7 @@ func (roleStore *Store) UpdateRole(id uint, role *models.Role) (*models.Role, er
 		return nil, err
 	}
 
-	updatedRole, err := roleStore.Generic.Update(id, role, constants.RoleCols)
+	updatedRole, err := roleStore.Generic.UpdateAndReturn(id, role, constants.RoleCols)
 	if err != nil {
 		return nil, err
 	}

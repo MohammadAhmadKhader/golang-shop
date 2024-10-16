@@ -31,10 +31,10 @@ func NewStore(DB *gorm.DB) *Store {
 //	return &order, err
 //}
 
-func (orderStore *Store) GetPopulatedOrderById(Id uint) ([]GetAllOrdersRow, error) {
-	var order []GetAllOrdersRow
-	err := orderStore.DB.Model(&models.Order{}).Select(selectQ).Where("orders.id = ?", Id).
-		Joins(joinWOrderItems).Joins(joinWProducts).
+func (orderStore *Store) GetPopulatedOrderById(Id uint) ([]GetOneOrderRow, error) {
+	var order []GetOneOrderRow
+	err := orderStore.DB.Model(&models.Order{}).Select(selectOneOrderQ).Where("orders.id = ?", Id).
+		Joins(jointWAddress).Joins(joinWOrderItems).Joins(joinWProducts).
 		Scan(&order).Error
 	if err != nil || order == nil {
 		notFoundErr := fmt.Errorf("order with id: '%v' is not found", Id)
@@ -53,12 +53,9 @@ func (orderStore *Store) GetAllOrders(page, limit int) ([]models.Order, int64, e
 	return orders, count, nil
 }
 
-func (orderStore *Store) CreateOrder(tx *gorm.DB, userId uint, totalPrice float64) error {
-	return tx.Create(&models.Order{
-		Status:     models.Pending,
-		UserID:     userId,
-		TotalPrice: totalPrice,
-	}).Error
+func (orderStore *Store) CreateOrder(tx *gorm.DB, order *models.Order) error {
+	order.Status = models.Pending
+	return tx.Create(order).Error
 }
 
 func (orderStore *Store) GetProductsByIds(Ids []uint) ([]models.Product, error){
@@ -70,14 +67,17 @@ func (orderStore *Store) GetProductsByIds(Ids []uint) ([]models.Product, error){
 
 func (orderStore *Store) ValidateAndCalTotalPrice(prods []models.Product, orderItems []models.OrderItem) (*float64, error){
 	var totalPrice = 0.0
+
 	for _, prod := range prods {
 		for _, orderItem := range orderItems {
-			if orderItem.Quantity > prod.Quantity  {
-				return nil, fmt.Errorf("product with name: '%v' has '%v' quantity which is less than its cart item",prod.Name, prod.Quantity)
+			if orderItem.ProductID == prod.ID {
+				if orderItem.Quantity > prod.Quantity  {
+					return nil, fmt.Errorf("product with name: '%v' has '%v' quantity which is less than its cart item",prod.Name, prod.Quantity)
+				}
+
+				totalPrice= totalPrice + (prod.Price * float64(orderItem.Quantity))
 			}
 		}
-
-		totalPrice+= prod.Price
 	}
 	
 	return &totalPrice, nil
@@ -113,9 +113,9 @@ func (orderStore *Store) CreateOrderItems(tx *gorm.DB, order *models.Order, orde
 	return nil
 }
 
-func (orderStore *Store) CreateOrderWithItems(order *models.Order, cartId uint,userId *uint, totalPrice *float64, orderItems []models.OrderItem) error {
+func (orderStore *Store) CreateOrderWithItems(order *models.Order, userId *uint, orderItems []models.OrderItem) error {
 	return orderStore.DB.Transaction(func(tx *gorm.DB) error {
-		err := orderStore.CreateOrder(tx, *userId, *totalPrice)
+		err := orderStore.CreateOrder(tx, order)
 		if err != nil {
 			return err
 		}
@@ -125,7 +125,8 @@ func (orderStore *Store) CreateOrderWithItems(order *models.Order, cartId uint,u
 			return err
 		}
 
-		err = orderStore.EmptyTheCartTx(tx, cartId,*userId)
+		
+		err = orderStore.EmptyTheCartTx(tx, *userId)
 		if err != nil {
 			return err
 		}
@@ -135,11 +136,12 @@ func (orderStore *Store) CreateOrderWithItems(order *models.Order, cartId uint,u
 }
 
 func (orderStore *Store) CancelOrder(Id uint, userId uint) error {
-	err := orderStore.DB.Table("orders").Where("id = ? AND user_id = ?", Id, userId).Error
+	err := orderStore.DB.Model(&models.Order{}).Where("id = ? AND user_id = ?", Id, userId).Error
 	if err != nil {
 		return fmt.Errorf("order with id: '%v' was not found", Id)
 	}
-	err = orderStore.DB.Table("orders").Where("id = ? AND user_id = ?", Id, userId).Select("status").Updates(string(models.Cancelled)).Error
+	
+	err = orderStore.DB.Model(&models.Order{}).Where("id = ? AND user_id = ?", Id, userId).Update("status",string(models.Cancelled)).Error
 	if err != nil {
 		return err
 	}
@@ -170,34 +172,44 @@ func (orderStore *Store) GetAddressById(addressId uint) (*models.Address, error)
 	return &address, nil
 }
 
-func (orderStore *Store) EmptyTheCartTx(tx *gorm.DB, cartId uint, userId uint) error {
-	return tx.Model(&models.CartItem{}).Where("id = ? AND user_id = ?", cartId,userId).Delete(&models.CartItem{}).Error
+func (orderStore *Store) EmptyTheCartTx(tx *gorm.DB, userId uint) error {
+	return tx.Model(&models.CartItem{}).Where("user_id = ?",userId).Delete(&models.CartItem{}).Error
 }
 
-func (orderStore *Store) GetCartWithOrderItems(userId uint) (*models.Cart, error) {
-	var cart models.Cart
-	err := orderStore.DB.Where("user_id = ?", userId).Preload("OrderItems").First(&cart).Error
+func (orderStore *Store) GetCart(userId uint) ([]models.CartItem, error) {
+	var cart []models.CartItem
+	err := orderStore.DB.Where("user_id = ?", userId).Preload("Product").Find(&cart).Error
 	if err != nil {
 		return nil, err
 	}
-	return &cart, err
+	return cart, err
 }
 
-func (orderStore *Store) ConvertToOrderItems(cart *models.Cart) []models.OrderItem {
-	var orderItems = make([]models.OrderItem, 0, len(cart.CartItems))
-	for _, cartItem := range cart.CartItems {
+func (orderStore *Store) GetCartItemsCount(userId uint) (*int64, error) {
+	var count int64
+	err := orderStore.DB.Model(&models.CartItem{}).Where("user_id = ?", userId).Count(&count).Error
+	if err != nil {
+		return nil, err
+	}
+	return &count, err
+}
+
+func (orderStore *Store) ConvertToOrderItems(cart []models.CartItem) []models.OrderItem {
+	var orderItems = make([]models.OrderItem, 0, len(cart))
+	for _, cartItem := range cart {
 		orderItems = append(orderItems, models.OrderItem{
 			Quantity: cartItem.Quantity,
 			ProductID: cartItem.ProductID,
+			Product: cartItem.Product,
 		})
 	}
 
 	return orderItems
 }
 
-func (orderStore *Store) ExtractProductIds(cart *models.Cart) []uint {
-	var productsIds = make([]uint, 0, len(cart.CartItems))
-	for _, cartItem := range cart.CartItems {
+func (orderStore *Store) ExtractProductIds(cart []models.CartItem) []uint {
+	var productsIds = make([]uint, 0, len(cart))
+	for _, cartItem := range cart {
 		productsIds = append(productsIds, cartItem.ProductID)
 	}
 

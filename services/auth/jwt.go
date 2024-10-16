@@ -71,7 +71,7 @@ func ValidateToken(tokenString *string) (*jwt.Token, error) {
 func GetToken(r *http.Request) (*string, error) {
 	session, err := GetCookie(r)
 	if err != nil {
-		return nil, fmt.Errorf("unauthenticated")
+		return nil, fmt.Errorf("unauthorized")
 	}
 
 	token := session.Values["token"]
@@ -90,20 +90,30 @@ func GetUserIdFromJWT(jwtToken *jwt.Token) (*uint, jwt.MapClaims, error) {
 	if !ok {
 		return &userId, nil, fmt.Errorf("error has occurred during parsing token process")
 	}
-	
+
 	userIdInt, err := GetUserIdFromClaims(claims)
 	if err != nil {
 		return nil, nil, err
 	}
-
+	
 	return userIdInt, claims,nil
 }
 
+// this jwt library has issues with numbers assertions from token.
+//
+// they recommend asserting all the numbers as float64, but sometimes it throws an error as float64 and it works as string then
+// when it refuses to work with float64 assertion somehow it manage to work with string assertion and vice versa, 
+// therefore this type of assertion was made.
 func GetUserIdFromClaims(claims jwt.MapClaims) (*uint, error) {
 	var userId uint
 	userIdAsStr, ok := claims["userId"].(string)
 	if !ok {
-		return &userId, fmt.Errorf("user id not exist in token")
+		userIdAsFloat, okAsFloat := claims["userId"].(float64)
+		if !okAsFloat {
+			return &userId, fmt.Errorf("user id not exist in token")
+		}
+		userIdAsInt := uint(userIdAsFloat)
+		return &userIdAsInt, nil
 	}
 	userIdInt, err := strconv.Atoi(userIdAsStr)
 	if err != nil {

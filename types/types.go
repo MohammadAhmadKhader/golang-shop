@@ -59,7 +59,7 @@ type IImageStore interface {
 	CreateImage(image *models.Image) (*models.Image, error)
 }
 
-type tokenPayload struct {
+type TokenPayload struct {
 	Email     string `json:"email"`
 	UserId    int    `json:"userId"`
 	ExpiredAt int64  `json:"expiredAt"`

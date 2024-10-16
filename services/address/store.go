@@ -1,11 +1,12 @@
 package address
 
 import (
-	"fmt"
+	"net/http"
 
 	"gorm.io/gorm"
 	"main.go/constants"
 	"main.go/pkg/models"
+	"main.go/pkg/utils"
 	"main.go/services/generic"
 	"main.go/types"
 )
@@ -23,8 +24,18 @@ func NewStore(DB *gorm.DB) *Store {
 }
 
 func (addressStore *Store) GetById(id uint, userId uint) (*models.Address, error){
-	notFoundErr := fmt.Errorf("address with id: '%v' was not found", id)
-	address, err := addressStore.Generic.GetOneWithUserId(id, userId, notFoundErr)
+	notFoundMsg := "address with id: '%v' was not found"
+	address, err := addressStore.Generic.GetOneWithUserId(id, userId, notFoundMsg)
+	if err != nil {
+		return nil, err
+	}
+
+	return &address, nil
+}
+
+func (addressStore *Store) GetAddressById(id uint) (*models.Address, error){
+	notFoundMsg := "address with id: '%v' was not found"
+	address, err := addressStore.Generic.GetOne(id, notFoundMsg)
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +44,7 @@ func (addressStore *Store) GetById(id uint, userId uint) (*models.Address, error
 }
 
 func (addressStore *Store) CreateAddress(address *models.Address) (*models.Address, error){
-	address, err := addressStore.Generic.Create(address, constants.AddressCols)
+	address, err := addressStore.Generic.Create(address, constants.AddressCreateCols)
 	if err != nil {
 		return nil, err
 	}
@@ -41,9 +52,9 @@ func (addressStore *Store) CreateAddress(address *models.Address) (*models.Addre
 	return address, nil
 }
 
-func (addressStore *Store) UpdateAddress(id uint, userId uint ,address *models.Address, excluder types.Excluder) (*models.Address, error){
-	fields := excluder.Exclude(constants.AddressCols)
-	address, err := addressStore.Generic.Update(id, address, fields)
+func (addressStore *Store) UpdateAddress(id uint, address *models.Address, excluder types.Excluder) (*models.Address, error){
+	fields := excluder.Exclude(constants.AddressUpdateCols)
+	address, err := addressStore.Generic.UpdateAndReturn(id, address, fields)
 	if err != nil {
 		return nil, err
 	}
@@ -52,8 +63,8 @@ func (addressStore *Store) UpdateAddress(id uint, userId uint ,address *models.A
 }
 
 func (addressStore *Store) DeleteAddress(id uint, userId uint) (error){
-	notFoundErr := fmt.Errorf("address with id: '%v' was not found", id)
-	err := addressStore.Generic.SoftDelete(id, notFoundErr)
+	notFoundMsg := "address with id: '%v' was not found"
+	err := addressStore.Generic.SoftDelete(id, notFoundMsg)
 	if err != nil {
 		return err
 	}
@@ -79,4 +90,13 @@ func (addressStore *Store) GetUndeletedAddressesCount(userId uint) (*int64, erro
 	}
 
 	return &count,  err
+}
+
+func (addressStore *Store) GetCartItemCtx(r *http.Request) (*models.Address, error) {
+	address, err := utils.GetResourceCtx[models.Address](r, "address")
+	if err != nil {
+		return nil, err
+	}
+
+	return address, nil
 }

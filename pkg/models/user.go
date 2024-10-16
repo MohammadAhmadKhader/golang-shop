@@ -9,5 +9,5 @@ type User struct {
 	Password     string  `json:"-" gorm:"size:128;not null"`
 	MobileNumber *string `json:"mobileNumber" gorm:"default:NULL;size:32"`
 	Roles        []Role  `json:"roles,omitempty" gorm:"many2many:user_roles;foreignKey:ID;joinForeignKey:UserID;References:ID;joinReferences:RoleID;constraint:OnDelete:CASCADE;"`
-	Cart         *Cart   `json:"cart,omitempty" gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE"`
+	CartItems []CartItem `json:"cart,omitempty" gorm:"foreignkey:UserID;constraint:OnDelete:CASCADE"`
 }

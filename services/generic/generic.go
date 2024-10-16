@@ -25,10 +25,10 @@ func (g GenericRepository[TModel]) GetOne(Id uint, notFoundMsg string) (TModel, 
 // this function meant to be used with any model that contains user id inside it, it will search based on both the resource id and user id.
 // 
 // * if the model does not contain user id it will throw an error.
-func (g GenericRepository[TModel]) GetOneWithUserId(Id uint, userId uint,notFoundErr error) (TModel, error) {
+func (g GenericRepository[TModel]) GetOneWithUserId(Id uint, userId uint,notFoundMsg string) (TModel, error) {
 	var model TModel
 	if err := g.DB.Where("id = ? AND user_id = ?", Id, userId).First(&model).Error; err != nil {
-		return model, notFoundErr
+		return model, fmt.Errorf(notFoundMsg, Id)
 	}
 
 	return model, nil
@@ -92,7 +92,7 @@ func (prodStore GenericRepository[TModel]) UpdateTx(model *TModel, tx *gorm.DB, 
 	return nil
 }
 
-func (g GenericRepository[TModel]) Update(id uint, model *TModel, selectedFields []string) (*TModel, error) {
+func (g GenericRepository[TModel]) UpdateAndReturn(id uint, model *TModel, selectedFields []string) (*TModel, error) {
 	result := g.DB.Model(model).Select(selectedFields).Where("id = ?", id).Updates(model)
 	if result.Error != nil {
 		return nil, result.Error
@@ -102,6 +102,15 @@ func (g GenericRepository[TModel]) Update(id uint, model *TModel, selectedFields
 		return nil, err
 	}
 
+	return model, nil
+}
+
+func (g GenericRepository[TModel]) Update(id uint, model *TModel, selectedFields []string) (*TModel, error) {
+	result := g.DB.Model(model).Select(selectedFields).Where("id = ?", id).Updates(model)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	
 	return model, nil
 }
 
@@ -118,10 +127,10 @@ func (g GenericRepository[TModel]) UpdateWithUserId(id uint, model *TModel, sele
 	return model, nil
 }
 
-func (g GenericRepository[TModel]) SoftDelete(Id uint, notFoundErr error) error {
+func (g GenericRepository[TModel]) SoftDelete(Id uint, notFoundMsg string) error {
 	var modelToDelete TModel
 	if err := g.DB.Model(&modelToDelete).First(&modelToDelete, Id).Error; err != nil {
-		return notFoundErr
+		return fmt.Errorf(notFoundMsg, Id)
 	}
 
 	if err := g.DB.Delete(&modelToDelete).Error; err != nil {
@@ -131,10 +140,10 @@ func (g GenericRepository[TModel]) SoftDelete(Id uint, notFoundErr error) error 
 	return nil
 }
 
-func (g GenericRepository[TModel]) SoftDeleteWithUserId(Id uint, userId uint ,notFoundErr error) error {
+func (g GenericRepository[TModel]) SoftDeleteWithUserId(Id uint, userId uint ,notFoundMsg string) error {
 	var modelToDelete TModel
 	if err := g.DB.Model(&modelToDelete).First(&modelToDelete, Id).Where("user_id = ?", userId).Error; err != nil {
-		return notFoundErr
+		return fmt.Errorf(notFoundMsg, Id)
 	}
 
 	if err := g.DB.Delete(&modelToDelete).Error; err != nil {
@@ -144,10 +153,10 @@ func (g GenericRepository[TModel]) SoftDeleteWithUserId(Id uint, userId uint ,no
 	return nil
 }
 
-func (g GenericRepository[TModel]) HardDelete(Id uint, notFoundErr error) error {
+func (g GenericRepository[TModel]) HardDelete(Id uint, notFoundMsg string) error {
 	var modelToDelete TModel
 	if err := g.DB.Model(&modelToDelete).First(&modelToDelete, Id).Error; err != nil {
-		return notFoundErr
+		return fmt.Errorf(notFoundMsg, Id)
 	}
 
 	if err := g.DB.Unscoped().Delete(&modelToDelete).Error; err != nil {
@@ -157,10 +166,10 @@ func (g GenericRepository[TModel]) HardDelete(Id uint, notFoundErr error) error 
 	return nil
 }
 
-func (g GenericRepository[TModel]) HardDeleteWithUserId(Id uint, userId uint,notFoundErr error) error {
+func (g GenericRepository[TModel]) HardDeleteWithUserId(Id uint, userId uint,notFoundMsg string) error {
 	var modelToDelete TModel
 	if err := g.DB.Model(&modelToDelete).First(&modelToDelete, Id).Where("user_id = ?", userId).Error; err != nil {
-		return notFoundErr
+		return fmt.Errorf(notFoundMsg, Id)
 	}
 
 	if err := g.DB.Unscoped().Delete(&modelToDelete).Error; err != nil {
@@ -171,10 +180,10 @@ func (g GenericRepository[TModel]) HardDeleteWithUserId(Id uint, userId uint,not
 }
 
 // * This store function applies only when soft delete is applied on the route
-func (g *GenericRepository[TModel]) Restore(id uint, notFoundErr error) (*TModel, error) {
+func (g *GenericRepository[TModel]) Restore(id uint, notFoundMsg string) (*TModel, error) {
 	var item TModel
 	if err := g.DB.Unscoped().First(&item, id).Error; err != nil {
-		return nil, notFoundErr
+		return nil, fmt.Errorf(notFoundMsg, id)
 	}
 
 	if err := g.DB.Model(&item).Update("DeletedAt", nil).Error; err != nil {
@@ -184,10 +193,10 @@ func (g *GenericRepository[TModel]) Restore(id uint, notFoundErr error) (*TModel
 	return &item, nil
 }
 
-func (g *GenericRepository[TModel]) RestoreWithUserId(id uint, userId uint, notFoundErr error) (*TModel, error) {
+func (g *GenericRepository[TModel]) RestoreWithUserId(id uint, userId uint, notFoundMsg string) (*TModel, error) {
 	var item TModel
 	if err := g.DB.Unscoped().First(&item, id).Where("user_id = ?", userId).Error; err != nil {
-		return nil, notFoundErr
+		return nil, fmt.Errorf(notFoundMsg, id)
 	}
 
 	if err := g.DB.Model(&item).Update("DeletedAt", nil).Error; err != nil {

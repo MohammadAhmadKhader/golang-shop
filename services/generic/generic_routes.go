@@ -74,9 +74,9 @@ func (h *Handler[TModel]) GenerateSoftDeleteRoute(modelName string) func(w http.
 			return
 		}
 
-		notFoundErr := fmt.Errorf("%v with id: '%v' was not found",ModelNameMapper[modelName],*Id)
+		notFoundMsg := ModelNameMapper[modelName]+" "+"with id: '%v' was not found"
 
-		err = h.store.Generic.SoftDelete(*Id, notFoundErr)
+		err = h.store.Generic.SoftDelete(*Id, notFoundMsg)
 		if err != nil {
 			utils.WriteError(w, http.StatusBadRequest , err)
 			return
@@ -94,9 +94,9 @@ func (h *Handler[TModel]) GenerateRestoreRoute(modelName string) func(w http.Res
 			return
 		}
 
-		notFoundErr := fmt.Errorf("%v with id: '%v' was not found",ModelNameMapper[modelName],*Id)
+		notFoundMsg := ModelNameMapper[modelName]+" "+"with id: '%v' was not found"
 
-		item, err := h.store.Generic.Restore(*Id, notFoundErr)
+		item, err := h.store.Generic.Restore(*Id, notFoundMsg)
 		if err != nil {
 			utils.WriteError(w, http.StatusBadRequest , err)
 			return
@@ -117,9 +117,9 @@ func (h *Handler[TModel]) GenerateHardDeleteRoute(modelName string) func(w http.
 			return
 		}
 
-		notFoundErr := fmt.Errorf("%v with id: '%v' was not found",ModelNameMapper[modelName],*Id)
+		notFoundMsg := ModelNameMapper[modelName]+" "+"with id: '%v' was not found"
 
-		err = h.store.Generic.HardDelete(*Id, notFoundErr)
+		err = h.store.Generic.HardDelete(*Id, notFoundMsg)
 		if err != nil {
 			utils.WriteError(w, http.StatusBadRequest , err)
 			return
@@ -147,13 +147,3 @@ func (h *Handler[TModel]) GenerateGetAllDeleted(modelName string) func(w http.Re
 		})
 	}
 }
-
-//for _, model := range models {
-//	var typed = interface{}(model).(types.SoftDeletable)
-//	bytes, err := typed.ShowDeletedAt()
-//	if err != nil {
-//		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("failed to parse deleted_at"))
-//		return
-//	}
-//	fmt.Println("DeletedAt JSON:", string(bytes))
-//}

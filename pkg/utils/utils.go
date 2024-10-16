@@ -250,3 +250,16 @@ func GetUserIdCtx(r *http.Request) (*uint, error) {
 
 	return &user.ID, nil
 }
+
+func GetResourceCtx[TModel any](r *http.Request, modelName string) (*TModel, error) {
+	model, ok := r.Context().Value(constants.ResourceKey).(*TModel)
+	if !ok {
+		return nil, fmt.Errorf("%v was not found in context", modelName)
+	}
+
+	return model, nil
+}
+
+func TruncateToTwoDecimals(value float64) float64 {
+	return float64(int(value * 100)) / 100
+}

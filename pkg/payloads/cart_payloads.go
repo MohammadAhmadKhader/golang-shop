@@ -7,6 +7,6 @@ type AddCartItem struct {
 }
 
 type ChangeCartItemQty struct {
-	Operation string `json:"operation" validate:"required,oneof + -"`
+	Operation string `json:"operation" validate:"required,oneof=+ -"`
 	Amount uint `json:"amount" validate:"required,min=1"`
 }
