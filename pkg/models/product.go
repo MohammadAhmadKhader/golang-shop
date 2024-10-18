@@ -7,7 +7,6 @@ type Product struct {
 	Quantity     uint      `json:"quantity" gorm:"check:quantity > 0"`
 	Image        *Image    `json:"mainImage,omitempty" gorm:"-"`
 	Images       []Image   `json:"images,omitempty" gorm:"foreignKey:ProductID;constraint:OnDelete:CASCADE"`
-	Roles        []Role    `json:"roles,omitempty" gorm:"many2many:user_roles"`
 	Reviews      []Review  `json:"reviews,omitempty" gorm:"foreignKey:ProductID;OnDelete:CASCADE"`
 	Description  *string   `json:"description" gorm:"size:256"`
 	Category     *Category `json:"-" gorm:"-"`

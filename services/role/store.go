@@ -8,6 +8,10 @@ import (
 	"main.go/services/generic"
 )
 
+var (
+	notFoundMsg = "role with id: '%v' was not found"
+)
+
 type Store struct {
 	DB      *gorm.DB
 	Generic *generic.GenericRepository[models.Role]
@@ -39,16 +43,30 @@ func (roleStore *Store) CreateRole(role *models.Role) (*models.Role, error) {
 }
 
 func (roleStore *Store) UpdateRole(id uint, role *models.Role) (*models.Role, error) {
-	notFoundMsg := "role with id: '%v' was not found"
 	_, err := roleStore.Generic.GetOne(id, notFoundMsg); 
 	if err != nil {
 		return nil, err
 	}
 
-	updatedRole, err := roleStore.Generic.UpdateAndReturn(id, role, constants.RoleCols)
+	updatedRole, err := roleStore.Generic.Update(id, role, constants.RoleCols)
 	if err != nil {
 		return nil, err
 	}
-
 	return updatedRole, nil
+}
+
+func (roleStore *Store) DeleteRole(id uint) (error) {
+	err := roleStore.Generic.HardDelete(id)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (roleStore *Store) GetRole(id uint) (*models.Role, error) {
+	role, err := roleStore.Generic.GetOne(id, notFoundMsg)
+	if err != nil {
+		return nil,err
+	}
+	return &role, nil
 }

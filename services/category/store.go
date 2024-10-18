@@ -20,8 +20,11 @@ func NewStore(DB *gorm.DB) *Store {
 	}
 }
 
+var (
+	notFoundMsg = "category with id: '%v' was not found"
+)
+
 func (cateStore *Store) GetCategoryById(Id uint) (*models.Category, error) {
-	notFoundMsg := "category with id: '%v' was not found"
 	category, err := cateStore.Generic.GetOne(Id, notFoundMsg)
 	if err != nil {
 		return nil, err
@@ -49,7 +52,6 @@ func (cateStore *Store) CreateCategory(category *models.Category) (*models.Categ
 }
 
 func (cateStore *Store) UpdateCategory(id uint, category *models.Category) (*models.Category, error) {
-	notFoundMsg := "category with id: '%v' was not found"
 	_, err := cateStore.Generic.GetOne(id, notFoundMsg); 
 	if err != nil {
 		return nil, err

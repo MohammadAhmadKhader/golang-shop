@@ -24,8 +24,11 @@ func NewStore(DB *gorm.DB) *Store {
 	}
 }
 
+var (
+	notFoundMsg = "image with id: '%v' was not found"
+)
+
 func (imageStore *Store) GetImageById(id uint) (*models.Image, error) {
-	notFoundMsg := "product image with id: '%v' was not found"
 	image, err := imageStore.Generic.GetOne(id, notFoundMsg)
 	if err != nil {
 		return nil, err
@@ -73,7 +76,6 @@ func (imageStore *Store) GetProductById(productId uint) (*models.Product, error)
 }
 
 func (imageStore *Store) DeleteImageById(id uint) error {
-	notFoundMsg := "image with id: '%v' was not found"
 	image, err := imageStore.Generic.GetOne(id, notFoundMsg)
 	if err != nil {
 		return err
@@ -179,13 +181,3 @@ func (imageStore *Store) CreateManyImages(uploadResults []*utils.UploadResponse,
 
 	return images, nil
 }
-
-//func (imageStore *Store) UpdateImageById(productId *uint) (*models.Image, error) {
-//	
-//	err := imageStore.DB.Create("images").Error
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	return nil, nil
-//}

@@ -17,10 +17,11 @@ var (
 	CategoryCols = []string{"Name"}
 	ImageCols = []string{"ProductID","ImageUrl","IsMain","ImagePublicId"}
 	IdUrlPathKey = "id"
-	CommentCols = []string{"Comment","Rate"}
+	CommentCreateCols = []string{"Comment","Rate", "UserID", "ProductID"}
+	CommentUpdateCols = []string{"Comment","Rate"}
 	UserCreateCols = []string{"Name", "Email", "Password"}
 	UserUpdateCols = []string{"Name", "Email", "MobileNumber"}
-	RoleCols = []string{"Role"}
+	RoleCols = []string{"Name"}
 	AddressCreateCols = []string{"FullName","Country","StreetAddress","City","ZipCode","State","UserID"}
 	AddressUpdateCols = []string{"FullName","Country","StreetAddress","City","ZipCode","State"}
 )

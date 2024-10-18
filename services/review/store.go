@@ -9,6 +9,10 @@ import (
 	"main.go/types"
 )
 
+var (
+	notFoundMsg = "review with id: '%v' is not found"
+)
+
 type Store struct {
 	DB      *gorm.DB
 	Generic *generic.GenericRepository[models.Review]
@@ -22,7 +26,6 @@ func NewStore(DB *gorm.DB) *Store {
 }
 
 func (reviewStore *Store) GetReviewById(Id uint) (*models.Review, error) {
-	notFoundMsg := "review with id: '%v' is not found"
 	review, err := reviewStore.Generic.GetOne(Id, notFoundMsg)
 	if err != nil {
 		return nil, err
@@ -40,15 +43,9 @@ func (reviewStore *Store) GetAllReviews(page, limit int) ([]models.Review, int64
 	return reviews, count, nil
 }
 
-func (reviewStore *Store) UpdateReview(id uint, updatePayload *models.Review, excluder types.Excluder) (*models.Review, error) {
-	notFoundMsg :="review with id: '%v' was not found"
-	_, err := reviewStore.Generic.GetOne(id, notFoundMsg); 
-	if err != nil {
-		return nil, err
-	}
-
-	uCols := excluder.Exclude(constants.CommentCols)
-	review, err := reviewStore.Generic.UpdateAndReturn(id, updatePayload, uCols)
+func (reviewStore *Store) UpdateReview(id uint, updatePayload *models.Review,excluder types.Excluder) (*models.Review, error) {
+	uCols := excluder.Exclude(constants.CommentUpdateCols)
+	review, err := reviewStore.Generic.Update(id, updatePayload, uCols)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +54,7 @@ func (reviewStore *Store) UpdateReview(id uint, updatePayload *models.Review, ex
 }
 
 func (reviewStore *Store) CreateReview(createPayload *models.Review) (*models.Review, error) {
-	review, err := reviewStore.Generic.Create(createPayload, constants.CommentCols)
+	review, err := reviewStore.Generic.Create(createPayload, constants.CommentCreateCols)
 	if err != nil {
 		return nil, err
 	}
@@ -65,12 +62,21 @@ func (reviewStore *Store) CreateReview(createPayload *models.Review) (*models.Re
 	return review, nil
 }
 
-func (reviewStore *Store) HardDeleteReview(Id uint, userId uint) error {
-	notFoundMsg := "review with id: '%v' is not found"
-	err := reviewStore.Generic.HardDeleteWithUserId(Id, userId, notFoundMsg)
+func (reviewStore *Store) HardDelete(Id uint) error {
+	err := reviewStore.Generic.HardDelete(Id)
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func (reviewStore *Store) GetProductById(productId uint) (*models.Product, error) {
+	var product models.Product
+	err := reviewStore.DB.First(&product, productId).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return &product, err
 }

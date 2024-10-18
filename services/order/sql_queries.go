@@ -9,10 +9,12 @@ var selectOneOrderQ = `orders.id as id, orders.user_id as user_id, orders.total_
 				order_items.id as order_item_id, order_items.unit_price as unit_price,order_items.quantity as order_item_quantity,
 				products.id as product_id, products.name as product_name, products.quantity as product_quantity, products.price as product_price, 
 				addresses.id as address_id, addresses.full_name as address_full_name, addresses.city as address_city, addresses.street_address as address_street_address,
-				addresses.zip_code as address_zip_code, addresses.state as address_state, addresses.country as address_country`
+				addresses.zip_code as address_zip_code, addresses.state as address_state, addresses.country as address_country,
+				images.image_url as product_image_url, images.is_main as product_image_is_main`
 var joinWOrderItems = `LEFT JOIN order_items ON order_items.order_id = orders.id`
 var joinWProducts = `LEFT JOIN products ON order_items.product_id = products.id`
 var jointWAddress = `LEFT JOIN addresses ON orders.address_id = addresses.id`
+var jointWProductImages = `LEFT JOIN images ON images.product_id = products.id AND images.is_main = 1`
 
 var selectAllOrdersQ = `orders.id as id, orders.user_id as user_id, orders.total_price as total_price, 
 				orders.status as status, orders.created_at as created_at, orders.updated_at as updated_at,
@@ -45,6 +47,8 @@ type GetOneOrderRow struct {
 	ProductName          string
 	ProductQuantity      uint
 	ProductPrice         float64
+	ProductImageUrl string
+	ProductImageIsMain bool
 }
 type GetAllOrdersRows struct {
 	Id                   uint
@@ -97,6 +101,12 @@ type respProduct struct {
 	Name     string  `json:"name"`
 	Quantity uint    `json:"quantity"`
 	Price    float64 `json:"price"`
+	MainImage respImage `json:"mainImage"`
+}
+
+type respImage struct {
+	IsMain bool `json:"isMain"`
+	ImageUrl string `json:"imageUrl"`
 }
 
 type respAddress struct {
@@ -181,6 +191,10 @@ func convertRowToResp(rows []GetOneOrderRow) *respOneOrder {
 				Name:     row.ProductName,
 				Quantity: row.ProductQuantity,
 				Price:    row.ProductPrice,
+				MainImage: respImage{
+					IsMain: row.ProductImageIsMain,
+					ImageUrl: row.ProductImageUrl,
+				},
 			},
 		})
 	}

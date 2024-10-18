@@ -21,19 +21,11 @@ func NewStore(DB *gorm.DB) *Store {
 	}
 }
 
-//// ! must be reworked
-//func (cartStore *Store) GetCartByUserId(userId uint) (*models.Cart, error) {
-//	var cart models.Cart
-//	err := cartStore.DB.Where("userId = ?", userId).First(&cart).Error
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	return &cart, err
-//}
+var (
+	notFoundMsg = "cart item with id: '%v' was not found"
+)
 
 func (cartStore *Store) GetCartItemById(Id uint) (*models.CartItem, error) {
-	notFoundMsg := "cart item with id: '%v' was not found"
 	cartItem ,err := cartStore.Generic.GetOne(Id, notFoundMsg)
 	if err != nil {
 		return nil, err
@@ -141,12 +133,3 @@ func (cartStore *Store) GetProduct(productId uint) (*models.Product, error) {
 
 	return &product, err
 }
-
-//func (cartStore *Store) GetCartItemCtx(r *http.Request) (*models.CartItem, error) {
-//	cartItem, err := utils.GetResourceCtx[models.CartItem](r, "cart item")
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	return cartItem, nil
-//}

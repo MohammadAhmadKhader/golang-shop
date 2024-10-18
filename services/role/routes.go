@@ -18,12 +18,15 @@ func NewHandler(store Store) *Handler {
 	}
 }
 
+var Authenticate = middlewares.Authenticate
 var AuthorizeSuperAdmin = middlewares.AuthorizeSuperAdmin
+var Pagination = middlewares.PaginationMiddleware
 
 func (h *Handler) RegisterRoutes(router *http.ServeMux) {
-	router.HandleFunc(utils.RoutePath("GET","/roles"), AuthorizeSuperAdmin(h.GetAllRoles))
-	router.HandleFunc(utils.RoutePath("PUT","/roles/{id}"), AuthorizeSuperAdmin(h.UpdateRole))
-	router.HandleFunc(utils.RoutePath("POST","/roles"), AuthorizeSuperAdmin(h.CreateRole))
+	router.HandleFunc(utils.RoutePath("GET","/roles"), Pagination(Authenticate(AuthorizeSuperAdmin(h.GetAllRoles))))
+	router.HandleFunc(utils.RoutePath("PUT","/roles/{id}"), Authenticate(AuthorizeSuperAdmin(h.UpdateRole)))
+	router.HandleFunc(utils.RoutePath("POST","/roles"), Authenticate(AuthorizeSuperAdmin(h.CreateRole)))
+	router.HandleFunc(utils.RoutePath("DELETE","/roles/{id}"), Authenticate(AuthorizeSuperAdmin(h.DeleteRole)))
 }
 
 func (h *Handler) GetAllRoles(w http.ResponseWriter, r *http.Request) {
@@ -82,4 +85,25 @@ func (h *Handler) UpdateRole(w http.ResponseWriter, r *http.Request) {
 	utils.WriteJSON(w, http.StatusAccepted, map[string]any{
 		"role":role,
 	})
+}
+
+func (h *Handler) DeleteRole(w http.ResponseWriter, r *http.Request) {
+	Id, err := utils.GetValidateId(r, "id")
+	if err != nil {
+		utils.WriteError(w, http.StatusBadRequest, err)
+		return
+	}
+	_,err = h.store.GetRole(*Id)
+	if err != nil {
+		utils.WriteError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	err = h.store.DeleteRole(*Id)
+	if err != nil {
+		utils.WriteError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusNoContent, map[string]any{})
 }

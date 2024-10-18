@@ -1,6 +1,7 @@
 package types
 
 import (
+	"net/http"
 	"strings"
 
 	"main.go/pkg/models"
@@ -120,4 +121,14 @@ type Excluder interface {
 
 type SoftDeletable interface {
 	ShowDeletedAt() ([]byte, error)
+}
+
+type AppResponse struct {
+    http.ResponseWriter
+    StatusCode int
+}
+
+func (ar *AppResponse) WriteHeader(statusCode int) {
+    ar.StatusCode = statusCode
+    ar.ResponseWriter.WriteHeader(statusCode)
 }

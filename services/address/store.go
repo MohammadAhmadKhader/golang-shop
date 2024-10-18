@@ -23,8 +23,11 @@ func NewStore(DB *gorm.DB) *Store {
 	}
 }
 
+var (
+	notFoundMsg = "address with id: '%v' was not found"
+)
+
 func (addressStore *Store) GetById(id uint, userId uint) (*models.Address, error){
-	notFoundMsg := "address with id: '%v' was not found"
 	address, err := addressStore.Generic.GetOneWithUserId(id, userId, notFoundMsg)
 	if err != nil {
 		return nil, err
@@ -34,7 +37,6 @@ func (addressStore *Store) GetById(id uint, userId uint) (*models.Address, error
 }
 
 func (addressStore *Store) GetAddressById(id uint) (*models.Address, error){
-	notFoundMsg := "address with id: '%v' was not found"
 	address, err := addressStore.Generic.GetOne(id, notFoundMsg)
 	if err != nil {
 		return nil, err
@@ -63,7 +65,6 @@ func (addressStore *Store) UpdateAddress(id uint, address *models.Address, exclu
 }
 
 func (addressStore *Store) DeleteAddress(id uint, userId uint) (error){
-	notFoundMsg := "address with id: '%v' was not found"
 	err := addressStore.Generic.SoftDelete(id, notFoundMsg)
 	if err != nil {
 		return err

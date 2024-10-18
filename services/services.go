@@ -33,5 +33,4 @@ func SetupAllServices(DB *gorm.DB, router *http.ServeMux) {
 	address.Setup(DB, router)
 	
 	role.Setup(DB, router)
-	generic.Setup[models.Role](DB, router, "roles", *superAdminOpts)
 }

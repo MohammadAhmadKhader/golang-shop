@@ -38,18 +38,18 @@ var ModelNameMapper = map[string]string{
 	"roles":"role",
 	"reviews":"review",
 }
-
+var Pagination = middlewares.PaginationMiddleware
 func (h *Handler[TModel]) RegisterRoutesGeneric(router *http.ServeMux, modelName string, options Options) {
 	
 	if options.SoftDeleteRoutes.IsEnabled {
 		_ = options.SoftDeleteRoutes.AuthenticateMiddleware
 		if options.HardDelete.AuthorizeMiddleware != nil {
 			AuthorizeMW := *options.HardDelete.AuthorizeMiddleware
-			router.HandleFunc(utils.RoutePath("GET","/"+modelName+"/deleted"), middlewares.Authenticate(AuthorizeMW(h.GenerateGetAllDeleted(modelName))))
+			router.HandleFunc(utils.RoutePath("GET","/"+modelName+"/deleted"), Pagination(middlewares.Authenticate(AuthorizeMW(h.GenerateGetAllDeleted(modelName)))))
 			router.HandleFunc(utils.RoutePath("PATCH","/"+modelName+"/{id}/restore"), middlewares.Authenticate(AuthorizeMW(h.GenerateRestoreRoute(modelName))))
 			router.HandleFunc(utils.RoutePath("DELETE","/"+modelName+"/{id}/soft-delete"), middlewares.Authenticate(AuthorizeMW(h.GenerateSoftDeleteRoute(modelName))))
 		} else {
-			router.HandleFunc(utils.RoutePath("GET","/"+modelName+"/deleted"), middlewares.Authenticate(h.GenerateGetAllDeleted(modelName)))
+			router.HandleFunc(utils.RoutePath("GET","/"+modelName+"/deleted"), Pagination(middlewares.Authenticate(h.GenerateGetAllDeleted(modelName))))
 			router.HandleFunc(utils.RoutePath("PATCH","/"+modelName+"/{id}/restore"), middlewares.Authenticate(h.GenerateRestoreRoute(modelName)))
 			router.HandleFunc(utils.RoutePath("DELETE","/"+modelName+"/{id}/soft-delete"), middlewares.Authenticate(h.GenerateSoftDeleteRoute(modelName)))
 		}
@@ -94,7 +94,7 @@ func (h *Handler[TModel]) GenerateRestoreRoute(modelName string) func(w http.Res
 			return
 		}
 
-		notFoundMsg := ModelNameMapper[modelName]+" "+"with id: '%v' was not found"
+		notFoundMsg := ModelNameMapper[modelName]+" deleted "+"with id: '%v' was not found"
 
 		item, err := h.store.Generic.Restore(*Id, notFoundMsg)
 		if err != nil {
@@ -119,7 +119,7 @@ func (h *Handler[TModel]) GenerateHardDeleteRoute(modelName string) func(w http.
 
 		notFoundMsg := ModelNameMapper[modelName]+" "+"with id: '%v' was not found"
 
-		err = h.store.Generic.HardDelete(*Id, notFoundMsg)
+		err = h.store.Generic.FindThenHardDelete(*Id, notFoundMsg)
 		if err != nil {
 			utils.WriteError(w, http.StatusBadRequest , err)
 			return

@@ -22,6 +22,15 @@ func (g GenericRepository[TModel]) GetOne(Id uint, notFoundMsg string) (TModel, 
 	return model, nil
 }
 
+func (g GenericRepository[TModel]) GetForUpdate(model *TModel, notFoundMsg string) (*TModel, error) {
+	if err := g.DB.Model(model).First(model, 4).Error; err != nil {
+		return model, fmt.Errorf(notFoundMsg, 4)
+	}
+
+	return model, nil
+}
+
+
 // this function meant to be used with any model that contains user id inside it, it will search based on both the resource id and user id.
 // 
 // * if the model does not contain user id it will throw an error.
@@ -153,9 +162,9 @@ func (g GenericRepository[TModel]) SoftDeleteWithUserId(Id uint, userId uint ,no
 	return nil
 }
 
-func (g GenericRepository[TModel]) HardDelete(Id uint, notFoundMsg string) error {
+func (g GenericRepository[TModel]) FindThenHardDelete(Id uint, notFoundMsg string) error {
 	var modelToDelete TModel
-	if err := g.DB.Model(&modelToDelete).First(&modelToDelete, Id).Error; err != nil {
+	if err := g.DB.Model(&modelToDelete).Unscoped().First(&modelToDelete, Id).Error; err != nil {
 		return fmt.Errorf(notFoundMsg, Id)
 	}
 
@@ -166,13 +175,9 @@ func (g GenericRepository[TModel]) HardDelete(Id uint, notFoundMsg string) error
 	return nil
 }
 
-func (g GenericRepository[TModel]) HardDeleteWithUserId(Id uint, userId uint,notFoundMsg string) error {
+func (g GenericRepository[TModel]) HardDelete(Id uint) error {
 	var modelToDelete TModel
-	if err := g.DB.Model(&modelToDelete).First(&modelToDelete, Id).Where("user_id = ?", userId).Error; err != nil {
-		return fmt.Errorf(notFoundMsg, Id)
-	}
-
-	if err := g.DB.Unscoped().Delete(&modelToDelete).Error; err != nil {
+	if err := g.DB.Unscoped().Where("id = ?", Id).Delete(&modelToDelete).Error; err != nil {
 		return err
 	}
 
@@ -182,7 +187,7 @@ func (g GenericRepository[TModel]) HardDeleteWithUserId(Id uint, userId uint,not
 // * This store function applies only when soft delete is applied on the route
 func (g *GenericRepository[TModel]) Restore(id uint, notFoundMsg string) (*TModel, error) {
 	var item TModel
-	if err := g.DB.Unscoped().First(&item, id).Error; err != nil {
+	if err := g.DB.Unscoped().First(&item, id).Where("DeletedAt != NULL").Error; err != nil {
 		return nil, fmt.Errorf(notFoundMsg, id)
 	}
 
@@ -195,7 +200,7 @@ func (g *GenericRepository[TModel]) Restore(id uint, notFoundMsg string) (*TMode
 
 func (g *GenericRepository[TModel]) RestoreWithUserId(id uint, userId uint, notFoundMsg string) (*TModel, error) {
 	var item TModel
-	if err := g.DB.Unscoped().First(&item, id).Where("user_id = ?", userId).Error; err != nil {
+	if err := g.DB.Unscoped().First(&item, id).Where("user_id = ? & DeletedAt != NULL", userId).Error; err != nil {
 		return nil, fmt.Errorf(notFoundMsg, id)
 	}
 
@@ -212,6 +217,7 @@ func (g *GenericRepository[TModel]) GetAllDeleted(page, limit int) ([]TModel, in
 	var model TModel
 	var count int64
 	var wg sync.WaitGroup
+	var mu sync.Mutex
 	wg.Add(2)
 
 	errors := make([]error, 0)
@@ -220,8 +226,11 @@ func (g *GenericRepository[TModel]) GetAllDeleted(page, limit int) ([]TModel, in
 	go func() {
 		defer wg.Done()
 		offset := utils.CalculateOffset(page, limit)
-		if err := g.DB.Unscoped().Where("deleted_at is NOT NULL").Find(&models).Order("deleted_at DESC").Order("delete_at DESC").Offset(offset).Limit(limit).Error; err != nil {
+		if err := g.DB.Unscoped().Where("deleted_at is NOT NULL").Order("deleted_at DESC").
+		Offset(offset).Limit(limit).Find(&models).Error; err != nil {
+			mu.Lock()
 			errors = append(errors, err)
+			mu.Unlock()
 		}
 	}()
 
@@ -229,7 +238,9 @@ func (g *GenericRepository[TModel]) GetAllDeleted(page, limit int) ([]TModel, in
 	go func() {
 		defer wg.Done()
 		if err := g.DB.Unscoped().Where("deleted_at is NOT NULL").Model(&model).Count(&count).Error; err != nil {
+			mu.Lock()
 			errors = append(errors, err)
+			mu.Unlock()
 		}
 	}()
 

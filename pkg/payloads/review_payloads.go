@@ -10,12 +10,15 @@ import (
 type CreateReview struct {
 	Rate    uint8  `json:"rate" validate:"required,oneof=1 2 3 4 5"`
 	Comment string `json:"comment" validate:"required,min=2,max=256,alphanumWithSpaces"`
-	UserId  uint   `json:"userId" validate:"required,min=1"`
 }
 
 type UpdateReview struct {
-	Rate    uint8  `json:"rate" validate:"oneof=1 2 3 4 5"`
-	Comment string `json:"comment" validate:"required,min=2,max=256,alphanumWithSpaces"`
+	Rate    uint8  `json:"rate,omitempty" validate:"omitempty,oneof=1 2 3 4 5"`
+	Comment string `json:"comment,omitempty" validate:"min=2,max=256,alphanumWithSpaces,omitempty"`
+}
+
+func (ur *UpdateReview) IsEmpty() bool {
+	return ur.Rate == 0 && ur.Comment == ""
 }
 
 func (ur *UpdateReview) TrimStrs() *UpdateReview {
@@ -34,35 +37,38 @@ func (cr *CreateReview) TrimStrs() *CreateReview {
 	return cr
 }
 
-func (ur *UpdateReview) ToModel() *models.Review {
+func (ur *UpdateReview) ToModel(userId uint, productId uint) *models.Review {
 	if ur != nil {
 		return &models.Review{
 			Rate:    ur.Rate,
 			Comment: ur.Comment,
+			UserID: userId,
+			ProductID: productId,
 		}
 	}
 
 	return nil
 }
 
-func (cr *CreateReview) ToModel() *models.Review {
+func (cr *CreateReview) ToModel(userId uint, productId uint) *models.Review {
 	if cr != nil {
 		return &models.Review{
-			UserID: cr.UserId,
 			Rate:    cr.Rate,
 			Comment: cr.Comment,
+			UserID: userId,
+			ProductID: productId,
 		}
 	}
 	
 	return nil
 }
 
-func (uc *UpdateReview) Exclude(selectedFields []string) []string {
+func (ur *UpdateReview) Exclude(selectedFields []string) []string {
 	removedCols := map[string]any{}
-	if uc.Comment == "" {
+	if ur.Comment == "" {
 		removedCols["Comment"] = 1
 	}
-	if uc.Rate == 0 {
+	if ur.Rate == 0 {
 		removedCols["Rate"] = 1
 	}
 	

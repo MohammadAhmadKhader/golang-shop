@@ -184,27 +184,23 @@ func RoutePath(method, path string) string {
 	return method + " " + constants.Prefix + path
 }
 
-func GetUserIdFromTokenPayload(r *http.Request) (*uint, error) {
+func GetUserIdFromToken(r *http.Request) (*uint, error) {
 	tokenClaims, ok := r.Context().Value(constants.TokenPayload).(jwt.MapClaims)
 	if !ok {
 		return nil, fmt.Errorf("no token claims found")
 	}
 
-	userID, ok := tokenClaims["userId"].(string)
+	userID, ok := tokenClaims["userId"].(float64)
 	if !ok {
 		return nil, fmt.Errorf("userId not found in token claims")
 	}
-	userIdInt, err := strconv.Atoi(userID)
-	if err != nil {
-		return nil, err
-	}
 
-	userIDAsUint := uint(userIdInt)
+	userIDAsUint := uint(userID)
 
 	return &userIDAsUint, nil
 }
 
-func GetUserEmailFromTokenPayload(r *http.Request) (*string, error) {
+func GetEmailFromToken(r *http.Request) (*string, error) {
 	tokenClaims, ok := r.Context().Value(constants.TokenPayload).(jwt.MapClaims)
 	if !ok {
 		return nil, fmt.Errorf("no token claims found")
@@ -262,4 +258,15 @@ func GetResourceCtx[TModel any](r *http.Request, modelName string) (*TModel, err
 
 func TruncateToTwoDecimals(value float64) float64 {
 	return float64(int(value * 100)) / 100
+}
+
+func GetFilesCount(r *http.Request, keyName string) (int, error) {
+	if err := r.ParseMultipartForm(1); err != nil {
+		return 0, err
+	}
+	files, ok := r.MultipartForm.File["images"]
+	if !ok {
+		return 0, fmt.Errorf("failed to access files")
+	}
+	return len(files), nil
 }

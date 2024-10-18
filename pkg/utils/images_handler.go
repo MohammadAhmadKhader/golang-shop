@@ -78,13 +78,8 @@ func (ih *ImagesHandler) UploadOne(file *multipart.File, fileHeader *multipart.F
 	return ih.getUploadResponse(resp), nil
 }
 
-func (ih *ImagesHandler) UploadMany(r *http.Request, folder Folder, keyName string, ctx context.Context) ([]*UploadResponse, []error) {
+func (ih *ImagesHandler) UploadMany(r *http.Request, folder Folder,files []*multipart.FileHeader, ctx context.Context) ([]*UploadResponse, []error) {
 	folderAsString := string(folder)
-	files := r.MultipartForm.File[keyName]
-	if len(files) == 0 {
-		return nil, []error{fmt.Errorf("no images were provided")}
-	}
-
 	var mu sync.Mutex
 	var wg sync.WaitGroup
 	UploadResponses := make([]*UploadResponse, 0, len(files))

@@ -23,7 +23,7 @@ func NewHandler(store Store) *Handler {
 var Authenticate = middlewares.Authenticate
 
 func (h *Handler) RegisterRoutes(router *http.ServeMux) {
-	router.HandleFunc(utils.RoutePath("GET", "/carts/"), Authenticate(h.GetUserCart))
+	router.HandleFunc(utils.RoutePath("GET", "/carts"), Authenticate(h.GetUserCart))
 	router.HandleFunc(utils.RoutePath("POST", "/carts"), Authenticate(h.AddToCart))
 	router.HandleFunc(utils.RoutePath("PATCH", "/carts/{itemId}"), Authenticate(h.ChangeCartItemQty))
 	router.HandleFunc(utils.RoutePath("DELETE", "/carts/{itemId}"), Authenticate(h.DeleteCartItem))

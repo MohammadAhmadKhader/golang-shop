@@ -77,7 +77,7 @@ func (h *Handler) GetAllOrders(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) CreateOrder(w http.ResponseWriter, r *http.Request) {
-	userId, err := utils.GetUserIdFromTokenPayload(r)
+	userId, err := utils.GetUserIdCtx(r)
 	if err != nil {
 		auth.DenyPermission(w)
 		return
@@ -151,7 +151,7 @@ func (h *Handler) UpdateOrderStatusById(w http.ResponseWriter, r *http.Request) 
 		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid id"))
 		return
 	}
-	userId, err := utils.GetUserIdFromTokenPayload(r)
+	userId, err := utils.GetUserIdCtx(r)
 	if err != nil {
 		auth.DenyPermission(w)
 		return
@@ -177,7 +177,7 @@ func (h *Handler) CancelOrderById(w http.ResponseWriter, r *http.Request) {
 		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid id"))
 		return
 	}
-	userId, err := utils.GetUserIdFromTokenPayload(r)
+	userId, err := utils.GetUserIdCtx(r)
 	if err != nil {
 		auth.DenyPermission(w)
 		return

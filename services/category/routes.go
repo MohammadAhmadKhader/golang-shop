@@ -22,12 +22,13 @@ func NewHandler(store Store) *Handler {
 
 var Authenticate = middlewares.Authenticate
 var AuthorizeAdmin = middlewares.AuthorizeAdmin
+var Pagination = middlewares.PaginationMiddleware
 
 func (h *Handler) RegisterRoutes(router *http.ServeMux) {
-	router.HandleFunc(utils.RoutePath("GET","/categories"), h.GetAllCategories)
+	router.HandleFunc(utils.RoutePath("GET","/categories"), Pagination(h.GetAllCategories))
 	router.HandleFunc(utils.RoutePath("GET","/categories/{id}"), Authenticate(AuthorizeAdmin(h.GetCategoryById)))
-	router.HandleFunc(utils.RoutePath("POST","/categories"), Authenticate(AuthorizeAdmin(h.GetAllCategories)))
-	router.HandleFunc(utils.RoutePath("PUT","/categories/{id}"), Authenticate(AuthorizeAdmin(h.GetAllCategories)))
+	router.HandleFunc(utils.RoutePath("POST","/categories"), Authenticate(AuthorizeAdmin(h.CreateCategory)))
+	router.HandleFunc(utils.RoutePath("PUT","/categories/{id}"), Authenticate(AuthorizeAdmin(h.UpdateCategory)))
 	//router.HandleFunc(utils.RoutePath("DELETE","/categories/{id}"), h.SoftDeleteById) // handled by the generic
 }
 

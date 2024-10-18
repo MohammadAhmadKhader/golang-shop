@@ -23,10 +23,11 @@ func NewHandler(store Store) *Handler {
 
 var Authenticate = middlewares.Authenticate
 var AuthorizeAdmin = middlewares.AuthorizeAdmin
+var Pagination = middlewares.PaginationMiddleware
 
 func (h *Handler) RegisterRoutes(router *http.ServeMux) {
 	router.HandleFunc(utils.RoutePath("GET", "/products/{id}"), Authenticate(AuthorizeAdmin(h.GetProductById)))
-	router.HandleFunc(utils.RoutePath("GET", "/products"), Authenticate(AuthorizeAdmin(h.GetAllProducts)))
+	router.HandleFunc(utils.RoutePath("GET", "/products"),Pagination(Authenticate(AuthorizeAdmin(h.GetAllProducts))))
 	router.HandleFunc(utils.RoutePath("POST", "/products"), Authenticate(AuthorizeAdmin(h.CreateProduct)))
 	router.HandleFunc(utils.RoutePath("PUT", "/products/{id}"), Authenticate(AuthorizeAdmin(h.CreateProduct)))
 }
@@ -38,14 +39,14 @@ func (h *Handler) GetProductById(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	product, err := h.store.GetProductById(*Id)
-	responseMap := getProductByIdMap(product)
-	if err != nil {
-		utils.WriteError(w, http.StatusBadRequest, err)
+	productRows, err := h.store.GetProductById(*Id)
+	if err != nil || len(productRows) == 0 {
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("product with id: '%v' was not found", *Id))
 		return
 	}
+	product := convertRowsToProduct(productRows)
 
-	utils.WriteJSON(w, http.StatusOK, map[string]any{"product": responseMap})
+	utils.WriteJSON(w, http.StatusOK, map[string]any{"product": product})
 }
 
 func (h *Handler) GetAllProducts(w http.ResponseWriter, r *http.Request) {

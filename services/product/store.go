@@ -24,41 +24,19 @@ func NewStore(DB *gorm.DB) *Store {
 	}
 }
 
-func (prodStore *Store) GetProductById(Id uint) (*models.Product, error) {
-	var product models.Product
-	rows, err := prodStore.DB.Raw(qGetProductById, Id, Id).Rows()
+var (
+	notFoundMsg = "product with id: '%v' was not found"
+)
+
+func (prodStore *Store) GetProductById(Id uint) ([]rowGetOneById, error) {
+	var qRows []rowGetOneById
+	err := prodStore.DB.Model(&models.Product{}).Select(getProductByIdQ, Id).
+	Joins(getProductByIdJoins).Where("products.id", Id).Group(groupByGetProductById).Scan(&qRows).Error
 	if err != nil {
-		return nil, fmt.Errorf("product with id: %v was not found", Id)
+		return nil, fmt.Errorf(notFoundMsg, Id)
 	}
 
-	Ids := map[string]any{}
-	formater := func(Id uint, model string) string {
-		return fmt.Sprintf("%v-%v", Id, model)
-	}
-
-	for rows.Next() {
-		var image models.Image
-		var review models.Review
-		err := rows.Scan(scanGetProductById(&product, &image, &review))
-		if err != nil {
-			return nil, fmt.Errorf("something went wrong try again later")
-		}
-
-		_, existRev := Ids[formater(review.ID, "review")]
-		if !existRev && review.ID != 0 {
-			Ids[formater(review.ID, "review")] = formater(review.ID, "review")
-			product.Reviews = append(product.Reviews, review)
-		}
-		_, existImg := Ids[formater(image.ID, "image")]
-		if !existImg && image.ID != 0 {
-			Ids[formater(image.ID, "image")] = formater(image.ID, "image")
-			product.Images = append(product.Images, image)
-		}
-
-	}
-	defer rows.Close()
-
-	return &product, err
+	return qRows, err
 }
 
 func (prodStore *Store) GetAllProducts(page, limit int, filter func(db *gorm.DB, filters []types.FilterCondition) ([]models.Product, error)) ([]models.Product, int64, error) {
@@ -80,7 +58,6 @@ func (prodStore *Store) CreateProduct(product *models.Product) (*models.Product,
 }
 
 func (prodStore *Store) UpdateProduct(id uint, product *models.Product, excluder types.Excluder) (*models.Product, error) {
-	notFoundMsg := "product with id: '%v' was not found"
 	_, err := prodStore.Generic.GetOne(id, notFoundMsg)
 	if err != nil {
 		return nil, err

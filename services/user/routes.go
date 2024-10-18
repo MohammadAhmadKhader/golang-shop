@@ -110,7 +110,7 @@ func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	}
 	rpPayload.TrimStrs()
 
-	email, err := utils.GetUserEmailFromTokenPayload(r)
+	email, err := utils.GetEmailFromToken(r)
 	if err != nil {
 		utils.WriteError(w, http.StatusUnauthorized, fmt.Errorf("unauthorized"))
 		return
@@ -175,8 +175,7 @@ func (h *Handler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userId, err := utils.GetUserIdFromTokenPayload(r)
-
+	userId, err := utils.GetUserIdCtx(r)
 	if err != nil || *userId != *Id {
 		auth.DenyPermission(w)
 		return

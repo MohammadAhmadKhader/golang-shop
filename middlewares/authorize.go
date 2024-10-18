@@ -19,7 +19,7 @@ var AuthorizeSuperAdmin = CreateAuthorizationMiddleware([]types.UserRole{types.S
 func CreateAuthorizationMiddleware(allowedRoles []types.UserRole, userFetcher types.IUserFetcher) func(next http.HandlerFunc) http.HandlerFunc {
 	return func(next http.HandlerFunc) http.HandlerFunc {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			userId, err := utils.GetUserIdFromTokenPayload(r)
+			userId, err := utils.GetUserIdFromToken(r)
 			if err != nil {
 				auth.DenyPermission(w)
 				return
@@ -59,7 +59,7 @@ func AuthorizeUser[TModel UserIdGetter](param, idIsRequiredErrMsg, notFoundErr s
 				return
 			}
 
-			userIdToken, err := utils.GetUserIdFromTokenPayload(r)
+			userIdToken, err := utils.GetUserIdFromToken(r)
 			if err != nil {
 				auth.Unauthorized(w)
 				return

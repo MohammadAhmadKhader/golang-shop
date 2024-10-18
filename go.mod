@@ -5,6 +5,7 @@ go 1.23
 toolchain go1.23.2
 
 require (
+	github.com/brianvoe/gofakeit/v6 v6.28.0
 	github.com/cloudinary/cloudinary-go/v2 v2.9.0
 	github.com/go-playground/validator/v10 v10.22.1
 	github.com/golang-jwt/jwt/v5 v5.2.1

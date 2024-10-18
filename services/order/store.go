@@ -21,6 +21,10 @@ func NewStore(DB *gorm.DB) *Store {
 	}
 }
 
+var (
+	notFoundMsg = "order with id: '%v' is not found"
+)
+
 //func (orderStore *Store) GetOrderById(Id uint) (*models.Order, error) {
 //	notFoundErr := fmt.Errorf("order with id: '%v' is not found", Id)
 //	order, err := orderStore.Generic.GetOne(Id, notFoundErr)
@@ -34,10 +38,10 @@ func NewStore(DB *gorm.DB) *Store {
 func (orderStore *Store) GetPopulatedOrderById(Id uint) ([]GetOneOrderRow, error) {
 	var order []GetOneOrderRow
 	err := orderStore.DB.Model(&models.Order{}).Select(selectOneOrderQ).Where("orders.id = ?", Id).
-		Joins(jointWAddress).Joins(joinWOrderItems).Joins(joinWProducts).
+		Joins(jointWAddress).Joins(joinWOrderItems).Joins(joinWProducts).Joins(jointWProductImages).
 		Scan(&order).Error
 	if err != nil || order == nil {
-		notFoundErr := fmt.Errorf("order with id: '%v' is not found", Id)
+		notFoundErr := fmt.Errorf(notFoundMsg, Id)
 		return nil, notFoundErr
 	}
 
@@ -138,7 +142,7 @@ func (orderStore *Store) CreateOrderWithItems(order *models.Order, userId *uint,
 func (orderStore *Store) CancelOrder(Id uint, userId uint) error {
 	err := orderStore.DB.Model(&models.Order{}).Where("id = ? AND user_id = ?", Id, userId).Error
 	if err != nil {
-		return fmt.Errorf("order with id: '%v' was not found", Id)
+		return fmt.Errorf(notFoundMsg, Id)
 	}
 	
 	err = orderStore.DB.Model(&models.Order{}).Where("id = ? AND user_id = ?", Id, userId).Update("status",string(models.Cancelled)).Error
@@ -152,7 +156,7 @@ func (orderStore *Store) CancelOrder(Id uint, userId uint) error {
 func (orderStore *Store) UpdateOrderStatus(Id uint, userId uint, status models.Status) error {
 	err := orderStore.DB.Table("orders").Where("id = ? AND user_id = ?", Id, userId).Error
 	if err != nil {
-		return fmt.Errorf("order with id: '%v' was not found", Id)
+		return fmt.Errorf(notFoundMsg, Id)
 	}
 	err = orderStore.DB.Table("orders").Where("id = ? AND user_id = ?", Id, userId).Select("status").Updates(string(status)).Error
 	if err != nil {

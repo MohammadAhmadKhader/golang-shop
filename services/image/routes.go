@@ -97,19 +97,25 @@ func (h *Handler) CreateImagesForProduct(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	
-	files, ok := r.MultipartForm.File["images"]
-	if !ok {
-		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("no file was found"))
+	filesCount ,err := utils.GetFilesCount(r, "images")
+	if err != nil {
+		utils.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
-
-	if int(*count) + len(files) > maxImagesCapacity {
+	sizeInMB := int64(10)
+	files, err:= utils.HandleMultipleFilesUpload(r, sizeInMB, "images")
+	if err != nil {
+		utils.WriteError(w, http.StatusBadRequest, err)
+		return
+	}
+	
+	if int(*count) + filesCount > maxImagesCapacity {
 		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("you can not upload more than 10 images for a single product, you have '%v' and you trying to upload more '%v'", *count, len(files)))
 		return
 	}
 
 	imgHandler := utils.NewImagesHandler()
-	responses, errs := imgHandler.UploadMany(r, utils.ProductsFolder, "images", context.Background())
+	responses, errs := imgHandler.UploadMany(r, utils.ProductsFolder, files, context.Background())
 	if len(errs) != 0 {
 		utils.WriteError(w, http.StatusInternalServerError, errs[0])
 		return

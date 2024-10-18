@@ -22,13 +22,19 @@ func NewHandler(store Store) *Handler {
 	}
 }
 
+const (
+	reviewId = "reviewId"
+)
+
 var Authenticate = middlewares.Authenticate
+var AuthorizeAdmin = middlewares.AuthorizeAdmin
+var Pagination = middlewares.PaginationMiddleware
 
 func (h *Handler) RegisterRoutes(router *http.ServeMux) {
-	router.HandleFunc(utils.RoutePath("GET", "/reviews"), Authenticate(h.GetAllReviews))
-	router.HandleFunc(utils.RoutePath("POST", "/reviews"), Authenticate(h.AddReview))
-	router.HandleFunc(utils.RoutePath("PUT", "/reviews/{id}"), Authenticate(h.EditReview))
-	router.HandleFunc(utils.RoutePath("DELETE", "/reviews/{id}"), Authenticate(h.DeleteReview))
+	router.HandleFunc(utils.RoutePath("GET", "/reviews"), Pagination(Authenticate(AuthorizeAdmin(h.GetAllReviews))))
+	router.HandleFunc(utils.RoutePath("POST", "/products/{id}/reviews"), Authenticate(h.AddReview))
+	router.HandleFunc(utils.RoutePath("PUT", "/products/{id}/reviews/{reviewId}"), Authenticate(h.EditReview))
+	router.HandleFunc(utils.RoutePath("DELETE", "/products/{id}/reviews/{reviewId}"), Authenticate(h.DeleteReview))
 }
 
 func (h *Handler) GetAllReviews(w http.ResponseWriter, r *http.Request) {
@@ -62,30 +68,45 @@ func (h *Handler) GetAllReviews(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) AddReview(w http.ResponseWriter, r *http.Request) {
+	userId, err:=utils.GetUserIdCtx(r)
+	if err != nil {
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("something went wrong during retrieving user id from token"))
+		return
+	}
 	crPayload, err := utils.ValidateAndParseBody[payloads.CreateReview](r)
 	if err != nil {
-		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid id"))
+		utils.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
-
-	userId, err:=utils.GetUserIdFromTokenPayload(r)
+	productId, err := utils.GetValidateId(r, constants.IdUrlPathKey)
 	if err != nil {
-		auth.DenyPermission(w)
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid review id"))
 		return
 	}
-	crPayload.UserId = *userId
+	product, err := h.store.GetProductById(*productId)
+	if err != nil {
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("product id: '%v' does not exist", productId))
+		return
+	}
 
-	review, err := h.store.CreateReview(crPayload.TrimStrs().ToModel())
+	review := crPayload.TrimStrs().ToModel(*userId, product.ID)
+
+	newRev, err := h.store.CreateReview(review)
 	if err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	utils.WriteJSON(w, http.StatusCreated, map[string]any{"review": review})
+	utils.WriteJSON(w, http.StatusCreated, map[string]any{"review": newRev})
 }
-
+// ! must enahnce the missing fields returned on response (the ones did not get updated)
 func (h *Handler) EditReview(w http.ResponseWriter, r *http.Request) {
-	Id, err := utils.GetValidateId(r, constants.IdUrlPathKey)
+	userId, err := utils.GetUserIdCtx(r)
+	if err != nil {
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("something went wrong during retrieving user id from token"))
+		return
+	}
+	Id, err := utils.GetValidateId(r, reviewId)
 	if err != nil {
 		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid id"))
 		return
@@ -96,16 +117,14 @@ func (h *Handler) EditReview(w http.ResponseWriter, r *http.Request) {
 		utils.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
+	if upPayload.IsEmpty() {
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("at least on of (comment, rate) is required"))
+		return
+	}
 
 	oldRev, err := h.store.GetReviewById(*Id)
 	if err != nil {
 		utils.WriteError(w, http.StatusBadRequest, err)
-		return
-	}
-	
-	userId, err:=utils.GetUserIdFromTokenPayload(r)
-	if err != nil {
-		auth.DenyPermission(w)
 		return
 	}
 	
@@ -114,7 +133,7 @@ func (h *Handler) EditReview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	model := upPayload.TrimStrs().ToModel()
+	model := upPayload.TrimStrs().ToModel(*userId, oldRev.ProductID)
 	review, err := h.store.UpdateReview(*Id, model, upPayload)
 	if err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, err)
@@ -125,19 +144,29 @@ func (h *Handler) EditReview(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) DeleteReview(w http.ResponseWriter, r *http.Request) {
-	Id, err := utils.GetValidateId(r, constants.IdUrlPathKey)
+	Id, err := utils.GetValidateId(r, reviewId)
 	if err != nil {
 		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid id"))
 		return
 	}
 	
-	userId, err:=utils.GetUserIdFromTokenPayload(r)
+	userId, err := utils.GetUserIdCtx(r)
 	if err != nil {
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("something went wrong during retrieving user id from token"))
+		return
+	}
+
+	rev, err := h.store.GetReviewById(*Id)
+	if err != nil {
+		utils.WriteError(w, http.StatusBadRequest, err)
+		return
+	}
+	if rev.UserID != *userId {
 		auth.DenyPermission(w)
 		return
 	}
 
-	err = h.store.HardDeleteReview(*Id, *userId)
+	err = h.store.HardDelete(*Id)
 	if err != nil {
 		utils.WriteError(w, http.StatusBadRequest, err)
 		return
