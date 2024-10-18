@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"main.go/errors"
 	"main.go/middlewares"
 	"main.go/pkg/payloads"
 	"main.go/pkg/utils"
@@ -21,38 +22,34 @@ func NewHandler(store Store) *Handler {
 	}
 }
 
-var (
-	errWrongPWEmail = fmt.Errorf("wrong email or password")
-)
-
 var Authenticate = middlewares.Authenticate
 var AuthorizeSuperAdmin = middlewares.AuthorizeSuperAdmin
 
 func (h *Handler) RegisterRoutes(router *http.ServeMux) {
 	router.HandleFunc(utils.RoutePath("POST", "/users/login"), h.Login)
 	router.HandleFunc(utils.RoutePath("POST", "/users/sign-up"), h.SignUp)
-	router.HandleFunc(utils.RoutePath("PUT", "/users/reset-password"), h.ResetPassword)
+	router.HandleFunc(utils.RoutePath("PUT", "/users/reset-password"), Authenticate(h.ResetPassword))
 	router.HandleFunc(utils.RoutePath("PUT", "/users/{id}/profile"), Authenticate(h.UpdateProfile))
-	router.HandleFunc(utils.RoutePath("POST", "/users/{id}/role"), AuthorizeSuperAdmin(Authenticate(h.UpdateProfile)))
-	router.HandleFunc(utils.RoutePath("DELETE", "/users/{id}/role"), AuthorizeSuperAdmin(Authenticate(h.UpdateProfile)))
+	router.HandleFunc(utils.RoutePath("POST", "/users/{id}/role"), AuthorizeSuperAdmin(Authenticate(h.AssignUserRole)))
+	router.HandleFunc(utils.RoutePath("DELETE", "/users/{id}/role"), AuthorizeSuperAdmin(Authenticate(h.RemoveUserRole)))
 }
 
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	loginPayload, err := utils.ValidateAndParseBody[payloads.UserLogin](r)
-	loginPayload.TrimStrs()
 	if err != nil {
-		utils.WriteError(w, http.StatusBadRequest, errWrongPWEmail)
+		utils.WriteError(w, http.StatusBadRequest, errors.ErrWrongPWOrEmail)
 		return
 	}
-
+	loginPayload.TrimStrs()
+	
 	user, err := h.store.GetUserByEmail(loginPayload.Email)
 	if err != nil {
-		utils.WriteError(w, http.StatusInternalServerError, errWrongPWEmail)
+		utils.WriteError(w, http.StatusInternalServerError, errors.ErrWrongPWOrEmail)
 		return
 	}
 	isEqual := auth.ComparePassword(user.Password, []byte(loginPayload.Password))
 	if !isEqual {
-		utils.WriteError(w, http.StatusBadRequest, errWrongPWEmail)
+		utils.WriteError(w, http.StatusBadRequest, errors.ErrWrongPWOrEmail)
 		return
 	}
 
@@ -70,12 +67,12 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) SignUp(w http.ResponseWriter, r *http.Request) {
 	signUpPayload, err := utils.ValidateAndParseBody[payloads.UserSignUp](r)
-	signUpPayload.TrimStrs()
 	if err != nil {
 		fmt.Println(signUpPayload)
 		utils.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
+	signUpPayload.TrimStrs()
 	signUpPayload.Email = strings.ToLower(signUpPayload.Email)
 	// hash password and create user
 	user, err := h.store.CreateUser(*signUpPayload)
@@ -85,13 +82,13 @@ func (h *Handler) SignUp(w http.ResponseWriter, r *http.Request) {
 			utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("user with this email already existing"))
 			return
 		}
-		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("something went wrong try again later"))
+		utils.WriteError(w, http.StatusInternalServerError, errors.ErrGenericMessage)
 		return
 	}
 
 	token, err := auth.CreateJWT(*user, w, r)
 	if err != nil {
-		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("something went wrong try again later"))
+		utils.WriteError(w, http.StatusInternalServerError, errors.ErrGenericMessage)
 		return
 	}
 
@@ -101,7 +98,6 @@ func (h *Handler) SignUp(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// TODO: utils.ValidateAndParseBody & utils.GetUserEmailFromTokenPayload can be added into goroutine
 func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	rpPayload, err := utils.ValidateAndParseBody[payloads.ResetPassword](r)
 	if err != nil {
@@ -112,7 +108,7 @@ func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 
 	email, err := utils.GetEmailFromToken(r)
 	if err != nil {
-		utils.WriteError(w, http.StatusUnauthorized, fmt.Errorf("unauthorized"))
+		utils.WriteError(w, http.StatusUnauthorized, errors.ErrUnauthorized)
 		return
 	}
 
@@ -124,7 +120,7 @@ func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 
 	isEqual := auth.ComparePassword(rpPayload.Password, []byte(user.Password))
 	if !isEqual {
-		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("wring password"))
+		utils.WriteError(w, http.StatusBadRequest, errors.ErrWrongPWOrEmail)
 		return
 	}
 

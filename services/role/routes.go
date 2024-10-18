@@ -3,6 +3,8 @@ package role
 import (
 	"net/http"
 
+	"main.go/constants"
+	"main.go/errors"
 	"main.go/middlewares"
 	"main.go/pkg/payloads"
 	"main.go/pkg/utils"
@@ -21,6 +23,11 @@ func NewHandler(store Store) *Handler {
 var Authenticate = middlewares.Authenticate
 var AuthorizeSuperAdmin = middlewares.AuthorizeSuperAdmin
 var Pagination = middlewares.PaginationMiddleware
+
+func invalidRoleIdErr(id uint) error {
+	return errors.NewInvalidIDError("role", id)
+}
+
 
 func (h *Handler) RegisterRoutes(router *http.ServeMux) {
 	router.HandleFunc(utils.RoutePath("GET","/roles"), Pagination(Authenticate(AuthorizeSuperAdmin(h.GetAllRoles))))
@@ -70,9 +77,9 @@ func (h *Handler) UpdateRole(w http.ResponseWriter, r *http.Request) {
 		utils.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
-	Id, err := utils.GetValidateId(r, "id")
+	Id, err := utils.GetValidateId(r, constants.IdUrlPathKey)
 	if err != nil {
-		utils.WriteError(w, http.StatusBadRequest, err)
+		utils.WriteError(w, http.StatusBadRequest, invalidRoleIdErr(*Id))
 		return
 	}
 
@@ -88,9 +95,9 @@ func (h *Handler) UpdateRole(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) DeleteRole(w http.ResponseWriter, r *http.Request) {
-	Id, err := utils.GetValidateId(r, "id")
+	Id, err := utils.GetValidateId(r, constants.IdUrlPathKey)
 	if err != nil {
-		utils.WriteError(w, http.StatusBadRequest, err)
+		utils.WriteError(w, http.StatusBadRequest, invalidRoleIdErr(*Id))
 		return
 	}
 	_,err = h.store.GetRole(*Id)

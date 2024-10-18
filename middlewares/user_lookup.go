@@ -1,7 +1,6 @@
 package middlewares
 
 import (
-	"fmt"
 
 	"main.go/internal/database"
 	"main.go/pkg/models"
@@ -20,12 +19,10 @@ func (u *UserLookup) GetUserById(Id uint) (*models.User, error) {
 
 func (u *UserLookup) GetUserRolesByUserId(Id uint) ([]models.UserRoles, error) {
 	var roles []models.UserRoles
-	fmt.Println(1)
 	err := database.DB.Where("user_id = ?", Id).Preload("Role").Find(&roles).Error
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(roles)
 	return roles, nil
 }
 

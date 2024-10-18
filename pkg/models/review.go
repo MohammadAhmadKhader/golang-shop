@@ -9,3 +9,7 @@ type Review struct {
 	Comment string `json:"comment" gorm:"not null;size:256"`
 	Rate uint8 `json:"rate" gorm:"not null;type:TINYINT;check:rate >=1 AND rate <= 5"`
 }
+
+func (r Review) GetUserId() uint {
+	return r.UserID
+}

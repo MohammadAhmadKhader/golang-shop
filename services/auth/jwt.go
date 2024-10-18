@@ -8,16 +8,17 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"main.go/config"
+	"main.go/errors"
 	"main.go/pkg/models"
 	"main.go/pkg/utils"
 )
 
 func DenyPermission(w http.ResponseWriter) {
-	utils.WriteError(w, http.StatusForbidden, fmt.Errorf("forbidden"))
+	utils.WriteError(w, http.StatusForbidden, errors.ErrForbidden)
 }
 
 func Unauthorized(w http.ResponseWriter) {
-	utils.WriteError(w, http.StatusUnauthorized, fmt.Errorf("unauthorized"))
+	utils.WriteError(w, http.StatusUnauthorized, errors.ErrUnauthorized)
 }
 
 func CreateJWT(user models.User, w http.ResponseWriter, r *http.Request) (string, error) {
@@ -48,7 +49,7 @@ func CreateJWT(user models.User, w http.ResponseWriter, r *http.Request) (string
 func ValidateToken(tokenString *string) (*jwt.Token, error) {
 	token, err := jwt.Parse(*tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("Unauthenticated")
+			return nil, errors.ErrInvalidToken
 		}
 
 		return []byte(config.Envs.JWT_SECRET), nil
@@ -62,7 +63,7 @@ func ValidateToken(tokenString *string) (*jwt.Token, error) {
 
 	isValidToken := token.Valid
 	if !isValidToken {
-		return nil, fmt.Errorf("invalid token")
+		return nil, errors.ErrInvalidToken
 	}
 
 	return token, nil
@@ -71,14 +72,14 @@ func ValidateToken(tokenString *string) (*jwt.Token, error) {
 func GetToken(r *http.Request) (*string, error) {
 	session, err := GetCookie(r)
 	if err != nil {
-		return nil, fmt.Errorf("unauthorized")
+		return nil, errors.ErrUnauthorized
 	}
 
 	token := session.Values["token"]
 	var tokenAsString string
 	tokenAsString, ok := token.(string); 
 	if !ok {
-		return nil, fmt.Errorf("error during parsing token")
+		return nil, errors.ErrGenericMessage
 	}
 
 	return &tokenAsString, nil
@@ -88,7 +89,7 @@ func GetUserIdFromJWT(jwtToken *jwt.Token) (*uint, jwt.MapClaims, error) {
 	claims, ok := jwtToken.Claims.(jwt.MapClaims)
 	var userId uint
 	if !ok {
-		return &userId, nil, fmt.Errorf("error has occurred during parsing token process")
+		return &userId, nil, errors.ErrGenericMessage
 	}
 
 	userIdInt, err := GetUserIdFromClaims(claims)

@@ -1,11 +1,11 @@
 package generic
 
 import (
-	"fmt"
 	"net/http"
 
 	"gorm.io/gorm"
 	"main.go/constants"
+	"main.go/errors"
 	"main.go/middlewares"
 	"main.go/pkg/utils"
 )
@@ -37,6 +37,10 @@ var ModelNameMapper = map[string]string{
 	"products":"product",
 	"roles":"role",
 	"reviews":"review",
+}
+
+func invalidModelIdErr(modelName string,id uint) error {
+	return errors.NewInvalidIDError(ModelNameMapper[modelName], id)
 }
 var Pagination = middlewares.PaginationMiddleware
 func (h *Handler[TModel]) RegisterRoutesGeneric(router *http.ServeMux, modelName string, options Options) {
@@ -70,7 +74,7 @@ func (h *Handler[TModel]) GenerateSoftDeleteRoute(modelName string) func(w http.
 	return func(w http.ResponseWriter, r *http.Request) {
 		Id, err := utils.GetValidateId(r, constants.IdUrlPathKey)
 		if err != nil {
-			utils.WriteError(w, http.StatusBadRequest , fmt.Errorf("invalid id"))
+			utils.WriteError(w, http.StatusBadRequest , invalidModelIdErr(modelName ,*Id))
 			return
 		}
 
@@ -90,7 +94,7 @@ func (h *Handler[TModel]) GenerateRestoreRoute(modelName string) func(w http.Res
 	return func(w http.ResponseWriter, r *http.Request) {
 		Id, err := utils.GetValidateId(r, constants.IdUrlPathKey)
 		if err != nil {
-			utils.WriteJSON(w, http.StatusBadRequest , fmt.Errorf("invalid id"))
+			utils.WriteJSON(w, http.StatusBadRequest ,  invalidModelIdErr(modelName ,*Id))
 			return
 		}
 
@@ -113,13 +117,13 @@ func (h *Handler[TModel]) GenerateHardDeleteRoute(modelName string) func(w http.
 	return func(w http.ResponseWriter, r *http.Request) {
 		Id, err := utils.GetValidateId(r, constants.IdUrlPathKey)
 		if err != nil {
-			utils.WriteJSON(w, http.StatusBadRequest , fmt.Errorf("invalid id"))
+			utils.WriteJSON(w, http.StatusBadRequest , invalidModelIdErr(modelName ,*Id))
 			return
 		}
 
 		notFoundMsg := ModelNameMapper[modelName]+" "+"with id: '%v' was not found"
 
-		err = h.store.Generic.FindThenHardDelete(*Id, notFoundMsg)
+		err = h.store.Generic.HardDelete(*Id, notFoundMsg)
 		if err != nil {
 			utils.WriteError(w, http.StatusBadRequest , err)
 			return

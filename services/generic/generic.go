@@ -1,43 +1,36 @@
 package generic
 
 import (
-	"fmt"
+	"errors"
+	appErrors "main.go/errors"
 	"sync"
 
 	"gorm.io/gorm"
 	"main.go/pkg/utils"
 )
 
+
 type GenericRepository[TModel any] struct {
 	DB *gorm.DB
 }
 
 // the error message (notFoundMsg) expects only one param to be passed which is the Id
-func (g GenericRepository[TModel]) GetOne(Id uint, notFoundMsg string) (TModel, error) {
+func (g GenericRepository[TModel]) GetOne(id uint, notFoundMsg string) (TModel, error) {
 	var model TModel
-	if err := g.DB.Where("id = ?", Id).First(&model).Error; err != nil {
-		return model, fmt.Errorf(notFoundMsg, Id)
+	if err := g.DB.Where("id = ?", id).First(&model).Error; err != nil {
+		return model, appErrors.NewResourceWasNotFoundError(notFoundMsg, id)
 	}
 
 	return model, nil
 }
-
-func (g GenericRepository[TModel]) GetForUpdate(model *TModel, notFoundMsg string) (*TModel, error) {
-	if err := g.DB.Model(model).First(model, 4).Error; err != nil {
-		return model, fmt.Errorf(notFoundMsg, 4)
-	}
-
-	return model, nil
-}
-
 
 // this function meant to be used with any model that contains user id inside it, it will search based on both the resource id and user id.
-// 
+//
 // * if the model does not contain user id it will throw an error.
-func (g GenericRepository[TModel]) GetOneWithUserId(Id uint, userId uint,notFoundMsg string) (TModel, error) {
+func (g GenericRepository[TModel]) GetOneWithUserId(id uint, userId uint, notFoundMsg string) (TModel, error) {
 	var model TModel
-	if err := g.DB.Where("id = ? AND user_id = ?", Id, userId).First(&model).Error; err != nil {
-		return model, fmt.Errorf(notFoundMsg, Id)
+	if err := g.DB.Where("id = ? AND user_id = ?", id, userId).First(&model).Error; err != nil {
+		return model, appErrors.NewResourceWasNotFoundError(notFoundMsg, id)
 	}
 
 	return model, nil
@@ -119,7 +112,7 @@ func (g GenericRepository[TModel]) Update(id uint, model *TModel, selectedFields
 	if result.Error != nil {
 		return nil, result.Error
 	}
-	
+
 	return model, nil
 }
 
@@ -136,10 +129,23 @@ func (g GenericRepository[TModel]) UpdateWithUserId(id uint, model *TModel, sele
 	return model, nil
 }
 
-func (g GenericRepository[TModel]) SoftDelete(Id uint, notFoundMsg string) error {
+func (g GenericRepository[TModel]) SoftDelete(id uint, notFoundMsg string) error {
 	var modelToDelete TModel
-	if err := g.DB.Model(&modelToDelete).First(&modelToDelete, Id).Error; err != nil {
-		return fmt.Errorf(notFoundMsg, Id)
+	res := g.DB.Delete(&modelToDelete, id)
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return appErrors.NewResourceWasNotFoundError(notFoundMsg, id)
+	}
+
+	return nil
+}
+
+func (g GenericRepository[TModel]) SoftDeleteWithUserId(id uint, userId uint, notFoundMsg string) error {
+	var modelToDelete TModel
+	if err := g.DB.Model(&modelToDelete).First(&modelToDelete, id).Where("user_id = ?", userId).Error; err != nil {
+		return appErrors.NewResourceWasNotFoundError(notFoundMsg, id)
 	}
 
 	if err := g.DB.Delete(&modelToDelete).Error; err != nil {
@@ -149,36 +155,14 @@ func (g GenericRepository[TModel]) SoftDelete(Id uint, notFoundMsg string) error
 	return nil
 }
 
-func (g GenericRepository[TModel]) SoftDeleteWithUserId(Id uint, userId uint ,notFoundMsg string) error {
+func (g GenericRepository[TModel]) HardDelete(Id uint, notFoundMsg string) error {
 	var modelToDelete TModel
-	if err := g.DB.Model(&modelToDelete).First(&modelToDelete, Id).Where("user_id = ?", userId).Error; err != nil {
-		return fmt.Errorf(notFoundMsg, Id)
+	res := g.DB.Unscoped().Delete(&modelToDelete)
+	if res.Error != nil {
+		return res.Error
 	}
-
-	if err := g.DB.Delete(&modelToDelete).Error; err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (g GenericRepository[TModel]) FindThenHardDelete(Id uint, notFoundMsg string) error {
-	var modelToDelete TModel
-	if err := g.DB.Model(&modelToDelete).Unscoped().First(&modelToDelete, Id).Error; err != nil {
-		return fmt.Errorf(notFoundMsg, Id)
-	}
-
-	if err := g.DB.Unscoped().Delete(&modelToDelete).Error; err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (g GenericRepository[TModel]) HardDelete(Id uint) error {
-	var modelToDelete TModel
-	if err := g.DB.Unscoped().Where("id = ?", Id).Delete(&modelToDelete).Error; err != nil {
-		return err
+	if res.RowsAffected == 0 {
+		return appErrors.NewResourceWasNotFoundError(notFoundMsg, Id)
 	}
 
 	return nil
@@ -188,7 +172,7 @@ func (g GenericRepository[TModel]) HardDelete(Id uint) error {
 func (g *GenericRepository[TModel]) Restore(id uint, notFoundMsg string) (*TModel, error) {
 	var item TModel
 	if err := g.DB.Unscoped().First(&item, id).Where("DeletedAt != NULL").Error; err != nil {
-		return nil, fmt.Errorf(notFoundMsg, id)
+		return nil, appErrors.NewResourceWasNotFoundError(notFoundMsg, id)
 	}
 
 	if err := g.DB.Model(&item).Update("DeletedAt", nil).Error; err != nil {
@@ -201,7 +185,7 @@ func (g *GenericRepository[TModel]) Restore(id uint, notFoundMsg string) (*TMode
 func (g *GenericRepository[TModel]) RestoreWithUserId(id uint, userId uint, notFoundMsg string) (*TModel, error) {
 	var item TModel
 	if err := g.DB.Unscoped().First(&item, id).Where("user_id = ? & DeletedAt != NULL", userId).Error; err != nil {
-		return nil, fmt.Errorf(notFoundMsg, id)
+		return nil, appErrors.NewResourceWasNotFoundError(notFoundMsg, id)
 	}
 
 	if err := g.DB.Model(&item).Update("DeletedAt", nil).Error; err != nil {
@@ -227,7 +211,7 @@ func (g *GenericRepository[TModel]) GetAllDeleted(page, limit int) ([]TModel, in
 		defer wg.Done()
 		offset := utils.CalculateOffset(page, limit)
 		if err := g.DB.Unscoped().Where("deleted_at is NOT NULL").Order("deleted_at DESC").
-		Offset(offset).Limit(limit).Find(&models).Error; err != nil {
+			Offset(offset).Limit(limit).Find(&models).Error; err != nil {
 			mu.Lock()
 			errors = append(errors, err)
 			mu.Unlock()
@@ -247,4 +231,75 @@ func (g *GenericRepository[TModel]) GetAllDeleted(page, limit int) ([]TModel, in
 	wg.Wait()
 
 	return models, count, errors
+}
+
+func (g *GenericRepository[TModel]) FindThenUpdate(id uint, changes *TModel, selectedFields []string, notFoundMsg string) (*TModel, error) {
+	var model TModel
+	if err := g.DB.First(&model, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, appErrors.NewResourceWasNotFoundError(notFoundMsg, id)
+		}
+		return nil, err
+	}
+
+	if err := g.DB.Model(&model).Select(selectedFields).Updates(changes).Error; err != nil {
+		return nil, err
+	}
+	return &model, nil
+}
+
+type UserIdGetter interface {
+	GetUserId() uint
+}
+
+func (g *GenericRepository[TModel]) FindThenUpdateWithAuth(id uint, changes *TModel, selectedFields []string, notFoundMsg string, userId uint) (*TModel, error) {
+	var model TModel
+	err := g.DB.First(&model, id).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, appErrors.NewResourceWasNotFoundError(notFoundMsg, id)
+		}
+		return nil, err
+	}
+
+	userGetter, ok := interface{}(model).(UserIdGetter)
+	if !ok {
+		panic("you must implement interface 'UserIdGetter'")
+	}
+	if userGetter.GetUserId() != userId {
+		return nil, appErrors.ErrForbidden
+	}
+
+	err = g.DB.Model(&model).Select(selectedFields).Updates(changes).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return &model, nil
+}
+
+func (g *GenericRepository[TModel]) FindThenDeleteWithAuth(id uint, notFoundMsg string, userId uint) (*TModel, error) {
+	var model TModel
+	err := g.DB.First(&model, id).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, appErrors.NewResourceWasNotFoundError(notFoundMsg, id)
+		}
+		return nil, err
+	}
+
+	userGetter, ok := interface{}(model).(UserIdGetter)
+	if !ok {
+		panic("you must implement interface 'UserIdGetter'")
+	}
+	if userGetter.GetUserId() != userId {
+		return nil, appErrors.ErrForbidden
+	}
+
+	err = g.DB.Delete(model, id).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return &model, nil
 }

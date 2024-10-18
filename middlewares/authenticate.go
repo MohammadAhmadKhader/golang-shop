@@ -2,7 +2,6 @@ package middlewares
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
 	"main.go/constants"
@@ -28,7 +27,6 @@ func Authenticate(next http.HandlerFunc) http.HandlerFunc {
 
 		userId, claims, err := auth.GetUserIdFromJWT(jwtToken)
 		if err != nil {
-			fmt.Println(err)
 			auth.Unauthorized(w)
 			return
 		}

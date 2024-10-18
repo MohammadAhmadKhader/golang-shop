@@ -3,6 +3,7 @@ package utils
 import (
 	"encoding/json"
 	"errors"
+	appErrs "main.go/errors"
 	"fmt"
 	"mime/multipart"
 	"net/http"
@@ -15,8 +16,6 @@ import (
 	"main.go/constants"
 	"main.go/pkg/models"
 )
-
-const GenericErrMessage = "An unexpected error has occurred, please try again later!"
 
 func Trim(str *string) *string {
 	ts := strings.Trim(*str, "")
@@ -90,8 +89,8 @@ func WriteError(w http.ResponseWriter, status int, err error) {
 
 	if config.Envs.Env == "production" {
 		if status >= 500 {
-			returnedErr = GenericErrMessage
-			errObj["error"] = GenericErrMessage
+			returnedErr = appErrs.ErrGenericMessage.Error()
+			errObj["error"] = appErrs.ErrGenericMessage.Error()
 			errObj["statusCode"] = status
 
 		} else if errors.As(err, &validationErrMsg) {

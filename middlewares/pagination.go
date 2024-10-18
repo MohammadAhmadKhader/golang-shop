@@ -2,7 +2,6 @@ package middlewares
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -26,7 +25,6 @@ func PaginationMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		
 		page := pageHandler(pageStr)
 		limit := limitHandler(limitStr)
-		fmt.Println(page,limit)
 		
 		ctx := context.WithValue(r.Context(), paginationKey, &types.Pagination{Page: page, Limit: limit})
 		next.ServeHTTP(w, r.WithContext(ctx))

@@ -43,15 +43,16 @@ func (reviewStore *Store) GetAllReviews(page, limit int) ([]models.Review, int64
 	return reviews, count, nil
 }
 
-func (reviewStore *Store) UpdateReview(id uint, updatePayload *models.Review,excluder types.Excluder) (*models.Review, error) {
+func (reviewStore *Store) UpdateReview(id,userId uint, updatePayload *models.Review,excluder types.Excluder) (*models.Review, error) {
 	uCols := excluder.Exclude(constants.CommentUpdateCols)
-	review, err := reviewStore.Generic.Update(id, updatePayload, uCols)
+	review, err := reviewStore.Generic.FindThenUpdateWithAuth(id, updatePayload, uCols,notFoundMsg ,userId)
 	if err != nil {
 		return nil, err
 	}
 
 	return review, nil
 }
+
 
 func (reviewStore *Store) CreateReview(createPayload *models.Review) (*models.Review, error) {
 	review, err := reviewStore.Generic.Create(createPayload, constants.CommentCreateCols)
@@ -62,8 +63,17 @@ func (reviewStore *Store) CreateReview(createPayload *models.Review) (*models.Re
 	return review, nil
 }
 
-func (reviewStore *Store) HardDelete(Id uint) error {
-	err := reviewStore.Generic.HardDelete(Id)
+//func (reviewStore *Store) HardDelete(Id uint) error {
+//	err := reviewStore.Generic.HardDelete(Id, notFoundMsg)
+//	if err != nil {
+//		return err
+//	}
+//
+//	return nil
+//}
+
+func (reviewStore *Store) HardDelete(Id uint, userId uint) error {
+	_,err := reviewStore.Generic.FindThenDeleteWithAuth(Id, notFoundMsg, userId)
 	if err != nil {
 		return err
 	}

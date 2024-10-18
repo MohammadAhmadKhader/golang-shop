@@ -1,10 +1,10 @@
 package category
 
 import (
-	"fmt"
 	"net/http"
 
 	"main.go/constants"
+	"main.go/errors"
 	"main.go/middlewares"
 	"main.go/pkg/payloads"
 	"main.go/pkg/utils"
@@ -24,18 +24,21 @@ var Authenticate = middlewares.Authenticate
 var AuthorizeAdmin = middlewares.AuthorizeAdmin
 var Pagination = middlewares.PaginationMiddleware
 
+func invalidCategoryIdErr(id uint) error {
+	return errors.NewInvalidIDError("category", id)
+}
+
 func (h *Handler) RegisterRoutes(router *http.ServeMux) {
 	router.HandleFunc(utils.RoutePath("GET","/categories"), Pagination(h.GetAllCategories))
 	router.HandleFunc(utils.RoutePath("GET","/categories/{id}"), Authenticate(AuthorizeAdmin(h.GetCategoryById)))
 	router.HandleFunc(utils.RoutePath("POST","/categories"), Authenticate(AuthorizeAdmin(h.CreateCategory)))
 	router.HandleFunc(utils.RoutePath("PUT","/categories/{id}"), Authenticate(AuthorizeAdmin(h.UpdateCategory)))
-	//router.HandleFunc(utils.RoutePath("DELETE","/categories/{id}"), h.SoftDeleteById) // handled by the generic
 }
 
 func (h *Handler) GetCategoryById(w http.ResponseWriter, r *http.Request){
 	Id, err := utils.GetValidateId(r, constants.IdUrlPathKey)
 	if err != nil {
-		utils.WriteError(w, http.StatusBadRequest , fmt.Errorf("invalid id"))
+		utils.WriteError(w, http.StatusBadRequest, invalidCategoryIdErr(*Id))
 		return
 	}
 
@@ -87,15 +90,16 @@ func (h *Handler) CreateCategory(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) UpdateCategory(w http.ResponseWriter, r *http.Request) {
 	catePayload, err := utils.ValidateAndParseBody[payloads.UpdateCategory](r)
-	catePayload.TrimStrs()
 	if err != nil {
 		utils.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
+
+	catePayload.TrimStrs()
 	model := catePayload.ToModel()
-	Id, err := utils.GetValidateId(r, "id")
+	Id, err := utils.GetValidateId(r, constants.IdUrlPathKey)
 	if err != nil {
-		utils.WriteError(w, http.StatusBadRequest, err)
+		utils.WriteError(w, http.StatusBadRequest, invalidCategoryIdErr(*Id))
 		return
 	}
 

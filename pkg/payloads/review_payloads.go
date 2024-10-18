@@ -37,13 +37,11 @@ func (cr *CreateReview) TrimStrs() *CreateReview {
 	return cr
 }
 
-func (ur *UpdateReview) ToModel(userId uint, productId uint) *models.Review {
+func (ur *UpdateReview) ToModel() *models.Review {
 	if ur != nil {
 		return &models.Review{
 			Rate:    ur.Rate,
 			Comment: ur.Comment,
-			UserID: userId,
-			ProductID: productId,
 		}
 	}
 

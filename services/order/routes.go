@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"main.go/constants"
+	"main.go/errors"
 	"main.go/middlewares"
 	"main.go/pkg/models"
 	"main.go/pkg/payloads"
@@ -22,6 +23,10 @@ func NewHandler(store Store) *Handler {
 	}
 }
 
+func invalidOrderIdErr(id uint) error {
+	return errors.NewInvalidIDError("order", id)
+}
+
 var Authenticate = middlewares.Authenticate
 
 func (h *Handler) RegisterRoutes(router *http.ServeMux) {
@@ -35,7 +40,7 @@ func (h *Handler) RegisterRoutes(router *http.ServeMux) {
 func (h *Handler) GetOrderById(w http.ResponseWriter, r *http.Request) {
 	Id, err := utils.GetValidateId(r, constants.IdUrlPathKey)
 	if err != nil {
-		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid id"))
+		utils.WriteError(w, http.StatusBadRequest, invalidOrderIdErr(*Id))
 		return
 	}
 
@@ -148,7 +153,7 @@ func (h *Handler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) UpdateOrderStatusById(w http.ResponseWriter, r *http.Request) {
 	Id, err := utils.GetValidateId(r, constants.IdUrlPathKey)
 	if err != nil {
-		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid id"))
+		utils.WriteError(w, http.StatusBadRequest, invalidOrderIdErr(*Id))
 		return
 	}
 	userId, err := utils.GetUserIdCtx(r)
@@ -158,7 +163,7 @@ func (h *Handler) UpdateOrderStatusById(w http.ResponseWriter, r *http.Request) 
 	}
 	uPayload, err := utils.ValidateAndParseBody[payloads.UpdateOrder](r)
 	if err != nil {
-		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid status"))
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid order status"))
 		return
 	}
 
@@ -174,7 +179,7 @@ func (h *Handler) UpdateOrderStatusById(w http.ResponseWriter, r *http.Request) 
 func (h *Handler) CancelOrderById(w http.ResponseWriter, r *http.Request) {
 	Id, err := utils.GetValidateId(r, constants.IdUrlPathKey)
 	if err != nil {
-		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid id"))
+		utils.WriteError(w, http.StatusBadRequest, invalidOrderIdErr(*Id))
 		return
 	}
 	userId, err := utils.GetUserIdCtx(r)

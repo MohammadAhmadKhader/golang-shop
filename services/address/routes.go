@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"main.go/errors"
 	"main.go/middlewares"
 	"main.go/pkg/payloads"
 	"main.go/pkg/utils"
@@ -19,8 +20,11 @@ func NewHandler(store Store) *Handler {
 	}
 }
 
+var addressId = "addressId"
+func invalidAddressIdErr(id uint) error {
+	return errors.NewInvalidIDError("address", id)
+}
 var Authenticate = middlewares.Authenticate
-
 // userId was added to avoid URL conflict with the generic routes and also its a good way to stick to REST rules
 func (h *Handler) RegisterRoutes(router *http.ServeMux) {
 	var _ = middlewares.AuthorizeUser("id", "address id is required", "address with id: '%v' was not found", h.store.GetAddressById)
@@ -39,15 +43,15 @@ func (h *Handler) GetAddressById(w http.ResponseWriter, r *http.Request) {
 		utils.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
-	addressId, err := utils.GetValidateId(r, "addressId")
+	addressId, err := utils.GetValidateId(r, addressId)
 	if err != nil {
-		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid address id"))
+		utils.WriteError(w, http.StatusBadRequest, invalidAddressIdErr(*addressId))
 		return
 	}
 
 	address, err := h.store.GetById(*addressId, *userId)
 	if err != nil {
-		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid address id"))
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("address with id: '%v' does not exist", *addressId))
 		return
 	}
 
@@ -112,7 +116,7 @@ func (h *Handler) UpdateAddress(w http.ResponseWriter, r *http.Request) {
 
 	addressId, err := utils.GetValidateId(r, "addressId")
 	if err != nil {
-		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid address id"))
+		utils.WriteError(w, http.StatusBadRequest, invalidAddressIdErr(*addressId))
 		return
 	}
 	count, err := h.store.GetUndeletedAddressesCount(*userId)
@@ -141,9 +145,9 @@ func (h *Handler) DeleteAddress(w http.ResponseWriter, r *http.Request) {
 		utils.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
-	addressId, err := utils.GetValidateId(r, "addressId")
+	addressId, err := utils.GetValidateId(r, addressId)
 	if err != nil {
-		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid address id"))
+		utils.WriteError(w, http.StatusBadRequest, invalidAddressIdErr(*addressId))
 		return
 	}
 

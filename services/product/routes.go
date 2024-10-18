@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"main.go/constants"
+	"main.go/errors"
 	"main.go/middlewares"
 	"main.go/pkg/models"
 	"main.go/pkg/payloads"
@@ -21,6 +22,10 @@ func NewHandler(store Store) *Handler {
 	}
 }
 
+func invalidProdIdErr(id uint) error {
+	return errors.NewInvalidIDError("product", id)
+}
+
 var Authenticate = middlewares.Authenticate
 var AuthorizeAdmin = middlewares.AuthorizeAdmin
 var Pagination = middlewares.PaginationMiddleware
@@ -35,7 +40,7 @@ func (h *Handler) RegisterRoutes(router *http.ServeMux) {
 func (h *Handler) GetProductById(w http.ResponseWriter, r *http.Request) {
 	Id, err := utils.GetValidateId(r, constants.IdUrlPathKey)
 	if err != nil {
-		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid id"))
+		utils.WriteError(w, http.StatusBadRequest, invalidProdIdErr(*Id))
 		return
 	}
 
@@ -122,7 +127,7 @@ func (h *Handler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 	Id, err := utils.GetValidateId(r, constants.IdUrlPathKey)
 	if err != nil {
-		utils.WriteError(w, http.StatusBadRequest, err)
+		utils.WriteError(w, http.StatusBadRequest, invalidProdIdErr(*Id))
 		return
 	}
 
