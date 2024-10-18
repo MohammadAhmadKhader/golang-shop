@@ -3,8 +3,8 @@ package utils
 import (
 	"encoding/json"
 	"errors"
-	appErrs "main.go/errors"
 	"fmt"
+	appErrs "main.go/errors"
 	"mime/multipart"
 	"net/http"
 	"strconv"
@@ -172,7 +172,7 @@ func HandleOneFileUpload(r *http.Request, sizeInMB int64, keyName string) (multi
 
 	file, fileHeader, err := r.FormFile(keyName)
 	if err != nil {
-		return nil, nil, fmt.Errorf("no file was found")
+		return nil, nil, appErrs.ErrNoFileFound
 	}
 	defer file.Close()
 
@@ -256,7 +256,7 @@ func GetResourceCtx[TModel any](r *http.Request, modelName string) (*TModel, err
 }
 
 func TruncateToTwoDecimals(value float64) float64 {
-	return float64(int(value * 100)) / 100
+	return float64(int(value*100)) / 100
 }
 
 func GetFilesCount(r *http.Request, keyName string) (int, error) {

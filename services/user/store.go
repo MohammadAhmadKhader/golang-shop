@@ -103,7 +103,7 @@ func (userStore *Store) CreateUser(user payloads.UserSignUp) (*models.User, erro
 }
 
 func (userStore *Store) UpdatePassword(newHashedPassword, email string) error {
-	if err := userStore.DB.Where("email = ?", email).Update("password", newHashedPassword).Error; err != nil {
+	if err := userStore.DB.Model(&models.User{}).Where("email = ?", email).Update("Password", newHashedPassword).Error; err != nil {
 		return err
 	}
 
@@ -121,13 +121,16 @@ func (userStore *Store) UpdateProfile(id uint, user *models.User, excluder types
 }
 
 func (userStore *Store) RemoveUserRole(roleId, userId uint) (error) {
-	var userRole models.UserRoles
-	err := userStore.DB.Model(&userRole).Where(&models.UserRoles{RoleID: roleId,UserID: userId}).Error
+	var userRole = models.UserRoles{
+		RoleID: roleId,
+		UserID: userId,
+	}
+	err := userStore.DB.Model(&userRole).First(&userRole).Error
 	if err != nil {
 		return fmt.Errorf("user role with keys (roleId-userId) '%v'-'%v' was not found", roleId, userId)
 	}
 
-	err = userStore.DB.Model(&userRole).Unscoped().Delete(userRole).Error
+	err = userStore.DB.Model(&userRole).Unscoped().Delete(&userRole).Error
 	if err != nil {
 		return err
 	}
@@ -135,23 +138,29 @@ func (userStore *Store) RemoveUserRole(roleId, userId uint) (error) {
 	return nil
 }
 
-func (userStore *Store) AssignUserRole(roleId, userId uint) (error) {
-	var userRole models.UserRoles
-	_, err := userStore.GetUserById(userId)
+func (userStore *Store) AssignUserRole(roleId, userId uint) (*models.UserRoles, error) {
+	var userRole = models.UserRoles{
+		RoleID: roleId,
+		UserID: userId,
+	}
+
+	user, err := userStore.GetUserById(userId)
 	if err != nil{
-		return fmt.Errorf("user with id:'%v' was not found", roleId)
+		return nil, fmt.Errorf("user with id:'%v' was not found", userId)
 	}
 
 	var role models.Role
 	err = userStore.DB.First(&role, roleId).Error
 	if err != nil{
-		return fmt.Errorf("user with id:'%v' was not found", userId)
+		return nil, fmt.Errorf("role with id:'%v' was not found", roleId)
 	}
 
-	err = userStore.DB.Model(&userRole).Create(&models.UserRoles{RoleID: roleId,UserID: userId}).Error
+	err = userStore.DB.Model(&userRole).Create(&userRole).Error
 	if err != nil {
-		return err
+		return nil, err
 	}
+	userRole.Role = &role
+	userRole.User = user
 
-	return nil
+	return &userRole, nil
 }

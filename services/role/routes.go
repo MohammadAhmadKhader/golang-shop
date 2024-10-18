@@ -100,12 +100,7 @@ func (h *Handler) DeleteRole(w http.ResponseWriter, r *http.Request) {
 		utils.WriteError(w, http.StatusBadRequest, invalidRoleIdErr(*Id))
 		return
 	}
-	_,err = h.store.GetRole(*Id)
-	if err != nil {
-		utils.WriteError(w, http.StatusBadRequest, err)
-		return
-	}
-
+	
 	err = h.store.DeleteRole(*Id)
 	if err != nil {
 		utils.WriteError(w, http.StatusBadRequest, err)

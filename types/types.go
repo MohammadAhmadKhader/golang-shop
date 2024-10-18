@@ -4,60 +4,93 @@ import (
 	"net/http"
 	"strings"
 
+	"gorm.io/gorm"
 	"main.go/pkg/models"
 	"main.go/pkg/payloads"
 )
 
-type IGenericRepository[TModel any] interface {
-	GetOne(Id uint, notFoundErr error) (TModel, error)
+type GenericRepository[TModel any] interface {
+	GetOne(Id uint, notFoundMsg string) (TModel, error)
 	GetAll(page int, limit int) (TModelS []TModel, count int64, errors []error)
-	Create(model *TModel, selectedFields []string) *TModel
-	Update(model *TModel, selectedFields []string) *TModel
-	SoftDelete(Id uint, notFoundErr error) error
-	HardDelete(Id uint, notFoundErr error) error
+	Create(model *TModel, selectedFields []string) (*TModel, error)
+	CreateTx(model *TModel, tx *gorm.DB) (error)
+	Update(model *TModel, selectedFields []string) (*TModel, error)
+	UpdateAndReturn(id uint, model *TModel, selectedFields []string) (*TModel, error)
+	SoftDelete(Id uint, notFoundMsg string) error
+	SoftDeleteWithUserId(id uint, userId uint, notFoundMsg string) error
+	HardDelete(Id uint, notFoundMsg string) error
+	Restore(id uint, notFoundMsg string) (*TModel, error)
+	RestoreWithUserId(id uint, userId uint, notFoundMsg string) (*TModel, error)
+	GetAllDeleted(page, limit int) ([]TModel, int64, []error)
+	FindThenUpdate(id uint, changes *TModel, selectedFields []string, notFoundMsg string)
+	FindThenUpdateWithAuth(id uint, changes *TModel, selectedFields []string, notFoundMsg string, userId uint) (*TModel, error)
+	FindThenDeleteWithAuth(id uint, notFoundMsg string, userId uint) (*TModel, error)
 }
 
-type ICategoryStore interface {
+type CategoryStore interface {
 	GetCategoryById(Id uint) (*models.Category, error)
 	GetAllCategories(page, limit int) ([]models.Category, int64, error)
 	CreateCategory(category *models.Category) (*models.Category, error)
 	UpdateCategory(category *models.Category) (*models.Category, error)
-	SoftDeleteCategory(Id uint) error
-	HardDeleteCategory(Id uint) error
 }
 
-type IOrderStore interface {
-	GetOrderById(Id uint) (*models.Order, error)
+type OrderStore interface {
+	GetPopulatedOrderById(Id uint) (*models.Order, error) // must be changed
+	CreateOrder(tx *gorm.DB, order *models.Order)
 	GetAllOrders(page, limit int) ([]models.Order, int64, error)
-	SoftDeleteOrder(Id uint) error
-	HardDeleteOrder(Id uint) error
+	GetProductsByIds(Ids []uint) ([]models.Product, error)
+	ValidateAndCalTotalPrice(prods []models.Product, orderItems []models.OrderItem) (*float64, error)
+	CreateOrderItems(tx *gorm.DB, order *models.Order, orderItems []models.OrderItem) error
+	CreateOrderWithItems(order *models.Order, userId *uint, orderItems []models.OrderItem) error
+	EmptyTheCartTx(tx *gorm.DB, userId uint) error
+	CancelOrder(Id uint, userId uint) error
+	UpdateOrderStatus(Id uint, userId uint, status models.Status) error
+	GetAddressById(addressId uint) (*models.Address, error)
+	GetCartItemsCount(userId uint) (*int64, error)
+	ConvertToOrderItems(cart []models.CartItem) []models.OrderItem
+	ExtractProductIds(cart []models.CartItem) []uint
 }
 
-type IProductStore interface {
-	GetProductById(Id uint) (*models.Product, error)
-	GetAllProducts(page, limit int) ([]models.Product, int64, error)
+type ProductStore interface {
+	GetProductById(Id uint) (*models.Product, error) // must be changed
+	GetAllProducts(page, limit int, filter func(db *gorm.DB, filters []FilterCondition) ([]models.Product, error)) ([]models.Product, int64, error)
 	CreateProduct(product *models.Product) (*models.Product, error)
-	SoftDeleteProduct(Id uint) error
-	HardDeleteProduct(Id uint) error
+	UpdateProduct(id uint, changes *models.Product, excluder Excluder) (*models.Product, error)
+	CreateImageTx(tx *gorm.DB, uploadResp *UploadResponse, productId uint, isMain bool) (*models.Image, error)
+	CreateProductWithImage(product *models.Product, uploadResp *UploadResponse) (*models.Product, error)
 }
 
-type IUserStore interface {
+type UserStore interface {
 	GetUserById(Id uint) (*models.User, error)
 	GetUserWithRolesById(Id uint) (*models.User, error)
 	GetUserByEmail(email string) (*models.User, error)
 	CreateUser(user payloads.UserSignUp) (*models.User, error)
 	UpdatePassword(newHashedPassword, email string) error
+	UpdateProfile(id uint, user *models.User, excluder Excluder) (*models.User, error)
+	RemoveUserRole(roleId, userId uint) (error)
+	AssignUserRole(roleId, userId uint) (*models.UserRoles, error)
 }
 
-type IReviewStore interface {
+type ReviewStore interface {
 	GetReviewById(Id uint) (*models.Review, error)
 	GetAllReviews(page, limit int) ([]models.Review, int64, error)
-	SoftDeleteReview(Id uint) error
-	HardDeleteReview(Id uint) error
+	UpdateReview(id,userId uint, updatePayload *models.Review,excluder Excluder) (*models.Review, error)
+	CreateReview(createPayload *models.Review) (*models.Review, error)
+	HardDelete(Id uint, userId uint) error
+	GetProductById(productId uint) (*models.Product, error)
 }
 
-type IImageStore interface {
+type ImageStore interface {
+	GetImageById(id uint) (*models.Image, error)
 	CreateImage(image *models.Image) (*models.Image, error)
+	UpdateImageUrl(id uint, newImageUrl string) (error)
+	GetCountOfProductImages(productId uint) (*int64, error)
+	GetProductById(productId uint) (*models.Product, error)
+	DeleteImageById(id uint) error
+	SetImageAsMainTx(tx *gorm.DB, id, productId uint) error
+	SetImageAsNotMainTx(tx *gorm.DB, productId uint) error
+	SwapMainStatus(id, productId uint) error
+	CreateManyImages(uploadResults []*UploadResponse, productId *uint) ([]models.Image, error)
 }
 
 type TokenPayload struct {

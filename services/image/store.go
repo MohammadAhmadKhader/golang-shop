@@ -10,6 +10,7 @@ import (
 	"main.go/pkg/models"
 	"main.go/pkg/utils"
 	"main.go/services/generic"
+	"main.go/types"
 )
 
 type Store struct {
@@ -160,7 +161,7 @@ func (imageStore *Store) SwapMainStatus(id, productId uint) error {
 	})
 }
 
-func (imageStore *Store) CreateManyImages(uploadResults []*utils.UploadResponse, productId *uint) ([]models.Image, error) {
+func (imageStore *Store) CreateManyImages(uploadResults []*types.UploadResponse, productId *uint) ([]models.Image, error) {
 	var images = make([]models.Image, 0, len(uploadResults))
 	isMain := false
 	for _, upResult := range uploadResults {

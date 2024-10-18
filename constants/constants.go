@@ -20,7 +20,7 @@ var (
 	CommentCreateCols = []string{"Comment","Rate", "UserID", "ProductID"}
 	CommentUpdateCols = []string{"Comment","Rate"}
 	UserCreateCols = []string{"Name", "Email", "Password"}
-	UserUpdateCols = []string{"Name", "Email", "MobileNumber"}
+	UserUpdateCols = []string{"Name", "Email", "MobileNumber","Avatar"}
 	RoleCols = []string{"Name"}
 	AddressCreateCols = []string{"FullName","Country","StreetAddress","City","ZipCode","State","UserID"}
 	AddressUpdateCols = []string{"FullName","Country","StreetAddress","City","ZipCode","State"}

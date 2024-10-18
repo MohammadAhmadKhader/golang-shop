@@ -8,6 +8,7 @@ import (
 	"main.go/constants"
 	"main.go/middlewares"
 	"main.go/pkg/utils"
+	"main.go/types"
 )
 
 type Handler struct {
@@ -115,7 +116,7 @@ func (h *Handler) CreateImagesForProduct(w http.ResponseWriter, r *http.Request)
 	}
 
 	imgHandler := utils.NewImagesHandler()
-	responses, errs := imgHandler.UploadMany(r, utils.ProductsFolder, files, context.Background())
+	responses, errs := imgHandler.UploadMany(r, types.ProductsFolder, files, context.Background())
 	if len(errs) != 0 {
 		utils.WriteError(w, http.StatusInternalServerError, errs[0])
 		return
@@ -151,7 +152,7 @@ func (h *Handler) UpdateImageById(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	imgHandler := utils.NewImagesHandler()
-	upResult, err := imgHandler.UploadOne(&file ,fileHeader, utils.ProductsFolder, context.Background())
+	upResult, err := imgHandler.UploadOne(&file ,fileHeader, types.ProductsFolder, context.Background())
 	if err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return

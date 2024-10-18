@@ -6,7 +6,6 @@ import (
 	"gorm.io/gorm"
 	"main.go/constants"
 	"main.go/pkg/models"
-	"main.go/pkg/utils"
 	"main.go/services/generic"
 	"main.go/services/image"
 	"main.go/types"
@@ -57,22 +56,17 @@ func (prodStore *Store) CreateProduct(product *models.Product) (*models.Product,
 	return products, nil
 }
 
-func (prodStore *Store) UpdateProduct(id uint, product *models.Product, excluder types.Excluder) (*models.Product, error) {
-	_, err := prodStore.Generic.GetOne(id, notFoundMsg)
-	if err != nil {
-		return nil, err
-	}
-
+func (prodStore *Store) UpdateProduct(id uint, changes *models.Product, excluder types.Excluder) (*models.Product, error) {
 	fields := excluder.Exclude(constants.ProductCols)
-	products, errs := prodStore.Generic.UpdateAndReturn(id, product, fields)
+	product, errs := prodStore.Generic.FindThenUpdate(id, changes, fields, notFoundMsg)
 	if errs != nil {
 		return nil, errs
 	}
 
-	return products, nil
+	return product, nil
 }
 
-func (prodStore *Store) CreateImageTx(tx *gorm.DB, uploadResp *utils.UploadResponse, productId uint, isMain bool) (*models.Image, error) {
+func (prodStore *Store) CreateImageTx(tx *gorm.DB, uploadResp *types.UploadResponse, productId uint, isMain bool) (*models.Image, error) {
 	imageStore := image.NewStore(tx)
 	newImage := &models.Image{
 		ProductID:     productId,
@@ -89,7 +83,7 @@ func (prodStore *Store) CreateImageTx(tx *gorm.DB, uploadResp *utils.UploadRespo
 	return newImage, nil
 }
 
-func (prodStore *Store) CreateProductWithImage(product *models.Product, uploadResp *utils.UploadResponse) (*models.Product, error) {
+func (prodStore *Store) CreateProductWithImage(product *models.Product, uploadResp *types.UploadResponse) (*models.Product, error) {
 	var returnedProduct models.Product
 	var returnedImg models.Image
 

@@ -10,6 +10,7 @@ import (
 	"main.go/pkg/models"
 	"main.go/pkg/payloads"
 	"main.go/pkg/utils"
+	"main.go/types"
 )
 
 type Handler struct {
@@ -34,7 +35,7 @@ func (h *Handler) RegisterRoutes(router *http.ServeMux) {
 	router.HandleFunc(utils.RoutePath("GET", "/products/{id}"), Authenticate(AuthorizeAdmin(h.GetProductById)))
 	router.HandleFunc(utils.RoutePath("GET", "/products"),Pagination(Authenticate(AuthorizeAdmin(h.GetAllProducts))))
 	router.HandleFunc(utils.RoutePath("POST", "/products"), Authenticate(AuthorizeAdmin(h.CreateProduct)))
-	router.HandleFunc(utils.RoutePath("PUT", "/products/{id}"), Authenticate(AuthorizeAdmin(h.CreateProduct)))
+	router.HandleFunc(utils.RoutePath("PUT", "/products/{id}"), Authenticate(AuthorizeAdmin(h.UpdateProduct)))
 }
 
 func (h *Handler) GetProductById(w http.ResponseWriter, r *http.Request) {
@@ -46,7 +47,7 @@ func (h *Handler) GetProductById(w http.ResponseWriter, r *http.Request) {
 
 	productRows, err := h.store.GetProductById(*Id)
 	if err != nil || len(productRows) == 0 {
-		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("product with id: '%v' was not found", *Id))
+		utils.WriteError(w, http.StatusBadRequest, errors.NewResourceWasNotFoundError("product", *Id))
 		return
 	}
 	product := convertRowsToProduct(productRows)
@@ -106,7 +107,7 @@ func (h *Handler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 	}
 
 	imgsHandler := utils.NewImagesHandler()
-	resp, err := imgsHandler.UploadOne(&file, fileHeader, utils.ProductsFolder, r.Context())
+	resp, err := imgsHandler.UploadOne(&file, fileHeader, types.ProductsFolder, r.Context())
 	if err != nil {
 		utils.WriteError(w, http.StatusBadRequest, err)
 		return
@@ -131,22 +132,18 @@ func (h *Handler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	urPayload, err := utils.ValidateAndParseFormData(r, func() (*payloads.UpdateProduct, error) {
-		payload, err := payloads.NewUpdatePayload(r, utils.ConvertStrToUint, utils.ConvertStrToFloat64)
-		if err != nil{
-			return nil, err
-		}
-
-		return payload, nil
-	})
-
+	upPayload, err := utils.ValidateAndParseBody[payloads.UpdateProduct](r)
 	if err != nil {
 		utils.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
+	if upPayload.IsEmpty() {
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("at least one of (name, quantity, description, categoryId, price) is required"))
+		return
+	}
 
-	prod := urPayload.TrimStrs().ToModel()
-	product, err := h.store.UpdateProduct(*Id, prod, urPayload)
+	prod := upPayload.TrimStrs().ToModel()
+	product, err := h.store.UpdateProduct(*Id, prod, upPayload)
 	if err != nil {
 		utils.WriteError(w, http.StatusBadRequest, err)
 		return

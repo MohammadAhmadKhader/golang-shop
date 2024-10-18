@@ -25,16 +25,6 @@ var (
 	notFoundMsg = "order with id: '%v' is not found"
 )
 
-//func (orderStore *Store) GetOrderById(Id uint) (*models.Order, error) {
-//	notFoundErr := fmt.Errorf("order with id: '%v' is not found", Id)
-//	order, err := orderStore.Generic.GetOne(Id, notFoundErr)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	return &order, err
-//}
-
 func (orderStore *Store) GetPopulatedOrderById(Id uint) ([]GetOneOrderRow, error) {
 	var order []GetOneOrderRow
 	err := orderStore.DB.Model(&models.Order{}).Select(selectOneOrderQ).Where("orders.id = ?", Id).

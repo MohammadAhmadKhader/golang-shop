@@ -90,7 +90,7 @@ func (h *Handler) AddReview(w http.ResponseWriter, r *http.Request) {
 	}
 	product, err := h.store.GetProductById(*productId)
 	if err != nil {
-		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("product id: '%v' does not exist", productId))
+		utils.WriteError(w, http.StatusBadRequest, appErrors.NewResourceWasNotFoundError("product", *productId))
 		return
 	}
 

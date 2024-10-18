@@ -2,8 +2,9 @@ package generic
 
 import (
 	"errors"
-	appErrors "main.go/errors"
 	"sync"
+
+	appErrors "main.go/errors"
 
 	"gorm.io/gorm"
 	"main.go/pkg/utils"
@@ -85,15 +86,6 @@ func (prodStore GenericRepository[TModel]) CreateTx(model *TModel, tx *gorm.DB) 
 	return nil
 }
 
-func (prodStore GenericRepository[TModel]) UpdateTx(model *TModel, tx *gorm.DB, columns []string) error {
-	err := tx.Model(model).Select(columns).Updates(model).Error
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func (g GenericRepository[TModel]) UpdateAndReturn(id uint, model *TModel, selectedFields []string) (*TModel, error) {
 	result := g.DB.Model(model).Select(selectedFields).Where("id = ?", id).Updates(model)
 	if result.Error != nil {
@@ -111,19 +103,6 @@ func (g GenericRepository[TModel]) Update(id uint, model *TModel, selectedFields
 	result := g.DB.Model(model).Select(selectedFields).Where("id = ?", id).Updates(model)
 	if result.Error != nil {
 		return nil, result.Error
-	}
-
-	return model, nil
-}
-
-func (g GenericRepository[TModel]) UpdateWithUserId(id uint, model *TModel, selectedFields []string, userId uint) (*TModel, error) {
-	result := g.DB.Model(model).Select(selectedFields).Where("id = ? AND user_id = ?", id, userId).Updates(model)
-	if result.Error != nil {
-		return nil, result.Error
-	}
-
-	if err := g.DB.First(model, id).Error; err != nil {
-		return nil, err
 	}
 
 	return model, nil
@@ -157,7 +136,7 @@ func (g GenericRepository[TModel]) SoftDeleteWithUserId(id uint, userId uint, no
 
 func (g GenericRepository[TModel]) HardDelete(Id uint, notFoundMsg string) error {
 	var modelToDelete TModel
-	res := g.DB.Unscoped().Delete(&modelToDelete)
+	res := g.DB.Unscoped().Delete(&modelToDelete, Id)
 	if res.Error != nil {
 		return res.Error
 	}
@@ -171,11 +150,11 @@ func (g GenericRepository[TModel]) HardDelete(Id uint, notFoundMsg string) error
 // * This store function applies only when soft delete is applied on the route
 func (g *GenericRepository[TModel]) Restore(id uint, notFoundMsg string) (*TModel, error) {
 	var item TModel
-	if err := g.DB.Unscoped().First(&item, id).Where("DeletedAt != NULL").Error; err != nil {
+	if err := g.DB.Unscoped().First(&item, id).Where("deleted_at != NULL").Error; err != nil {
 		return nil, appErrors.NewResourceWasNotFoundError(notFoundMsg, id)
 	}
 
-	if err := g.DB.Model(&item).Update("DeletedAt", nil).Error; err != nil {
+	if err := g.DB.Model(&item).Unscoped().Update("DeletedAt", nil).Error; err != nil {
 		return nil, err
 	}
 
@@ -184,11 +163,11 @@ func (g *GenericRepository[TModel]) Restore(id uint, notFoundMsg string) (*TMode
 
 func (g *GenericRepository[TModel]) RestoreWithUserId(id uint, userId uint, notFoundMsg string) (*TModel, error) {
 	var item TModel
-	if err := g.DB.Unscoped().First(&item, id).Where("user_id = ? & DeletedAt != NULL", userId).Error; err != nil {
+	if err := g.DB.Unscoped().First(&item, id).Where("user_id = ? AND deleted_at != NULL", userId).Error; err != nil {
 		return nil, appErrors.NewResourceWasNotFoundError(notFoundMsg, id)
 	}
 
-	if err := g.DB.Model(&item).Update("DeletedAt", nil).Error; err != nil {
+	if err := g.DB.Model(&item).Unscoped().Update("DeletedAt", nil).Error; err != nil {
 		return nil, err
 	}
 

@@ -40,6 +40,10 @@ func validationErrMsgHandler(errors validator.ValidationErrors) string {
 		message = fmt.Sprintf("%s must be less than %s", errors[0].Field(), errors[0].Param())
 	case "alphanumWithSpaces":
 		message = fmt.Sprintf("%s only characters allowed are (a-z) and (A-Z) and (0-9)", errors[0].Field())
+	case "eqfield":
+		if errors[0].Field() == "ConfirmNewPassword" && errors[0].Param() == "NewPassword" {
+			message = fmt.Sprintf("%s must equal %s", strings.ToLower(errors[0].Field()), strings.ToLower(errors[0].Param()))
+		}	
 	case "min":
 		if errors[0].Kind() == reflect.String {
 			message = fmt.Sprintf("%s minimum length allowed is %s", errors[0].Field(), errors[0].Param())

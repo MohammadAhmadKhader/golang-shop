@@ -21,11 +21,11 @@ type CreateProduct struct {
 
 
 type UpdateProduct struct {
-	Name        string         `json:"name" validate:"max=32,min=3,alphanumWithSpaces"`
-	Quantity    uint           `json:"quantity" validate:"min=0,max=10000"`
+	Name        string         `json:"name" validate:"omitempty,max=32,min=3,alphanumWithSpaces"`
+	Quantity    uint           `json:"quantity" validate:"omitempty,min=0,max=10000"`
 	Description string        `json:"description" validate:"omitempty,max=256,min=4,alphanumWithSpaces"`
-	CategoryID  uint           `json:"categoryId" validate:"min=1"`
-	Price       float64        `json:"price" validate:"gt=0.0"`
+	CategoryID  uint           `json:"categoryId" validate:"omitempty,min=1"`
+	Price       float64        `json:"price" validate:"omitempty,gt=0.0"`
 }
 
 func (cp *CreateProduct) ToModelWithImage(url string) *models.Product {
@@ -139,35 +139,6 @@ func NewCreatePayload(r *http.Request, uIntConvertor func(s string) (*uint, erro
 	return payload, nil
 }
 
-func NewUpdatePayload(r *http.Request, uIntConvertor func(s string) (*uint, error), floatConvertor func(s string) (*float64, error)) (*UpdateProduct, error) {
-	qty, err := uIntConvertor(r.FormValue("quantity"))
-	if err != nil {
-		zeroValue := uint(0)
-		qty = &zeroValue
-		return nil, err
-	}
-
-	categoryId, err := uIntConvertor(r.FormValue("categoryId"))
-	if err != nil {
-		zeroValue := uint(0)
-		categoryId = &zeroValue
-		return nil, nil
-	}
-
-	price, err := floatConvertor(r.FormValue("price"))
-	if err != nil {
-		zeroValue := float64(0)
-		price = &zeroValue
-		return nil, err
-	}
-	
-	payload := &UpdateProduct{
-		Name: r.FormValue("name"),
-		Quantity: *qty,
-		Description: r.FormValue("description"),
-		CategoryID: *categoryId,
-		Price: *price,
-	}
-	
-	return payload, nil
+func (up *UpdateProduct) IsEmpty() bool {
+	return up.Name == "" && up.Quantity == 0 && up.Description == "" && up.Price == 0 && up.CategoryID == 0 
 }

@@ -12,39 +12,8 @@ import (
 	"github.com/cloudinary/cloudinary-go/v2/api/admin"
 	"github.com/cloudinary/cloudinary-go/v2/api/uploader"
 	"main.go/config"
+	"main.go/types"
 )
-
-type Folder string
-
-const (
-	ProductsFolder Folder = "golang-shop/products"
-	UsersFolder    Folder = "golang-shop/users"
-)
-
-type IImagesHandler interface {
-	UploadOne(file *multipart.File, folder Folder) (*UploadResponse, error)
-	UploadMany(r *http.Request, folder Folder, keyName string, ctx context.Context) ([]*UploadResponse, []error)
-	DeleteOne(file *multipart.File, folder Folder) error
-	DeleteMany(PublicIDs []string, ctx context.Context) (*DeleteResponse, error)
-}
-
-type UploadResponse struct {
-	Width     int
-	Height    int
-	SecureUrl string
-	PublicID  string
-	URL       string
-	Format    string
-}
-
-type DeleteManyResponse struct {
-	DeletedCounts    map[string]interface{}
-}
-
-// TODO : resolving the issue with cloudinary delete response type
-type DeleteResponse struct {
-	result string
-}
 
 type ImagesHandler struct {
 	cld *cloudinary.Cloudinary
@@ -56,7 +25,7 @@ func NewImagesHandler() *ImagesHandler {
 	}
 }
 
-func (ih *ImagesHandler) UpdateOne(newFile *multipart.File, newFileHeader *multipart.FileHeader, folder Folder, ctx context.Context, oldImagePublicId string) (*UploadResponse, error) {
+func (ih *ImagesHandler) UpdateOne(newFile *multipart.File, newFileHeader *multipart.FileHeader, folder types.Folder, ctx context.Context, oldImagePublicId string) (*types.UploadResponse, error) {
 	uploadParams := NewUploadParams(string(folder), newFileHeader, true, &oldImagePublicId)
 	resp, err := ih.cld.Upload.Upload(ctx, *newFile, uploadParams)
 	if err != nil {
@@ -66,7 +35,7 @@ func (ih *ImagesHandler) UpdateOne(newFile *multipart.File, newFileHeader *multi
 	return ih.getUploadResponse(resp), nil
 }
 
-func (ih *ImagesHandler) UploadOne(file *multipart.File, fileHeader *multipart.FileHeader, folder Folder, ctx context.Context) (*UploadResponse, error) {
+func (ih *ImagesHandler) UploadOne(file *multipart.File, fileHeader *multipart.FileHeader, folder types.Folder, ctx context.Context) (*types.UploadResponse, error) {
 	folderAsString := string(folder)
 
 	uploadParams := NewUploadParams(folderAsString, fileHeader, true, nil)
@@ -78,11 +47,11 @@ func (ih *ImagesHandler) UploadOne(file *multipart.File, fileHeader *multipart.F
 	return ih.getUploadResponse(resp), nil
 }
 
-func (ih *ImagesHandler) UploadMany(r *http.Request, folder Folder,files []*multipart.FileHeader, ctx context.Context) ([]*UploadResponse, []error) {
+func (ih *ImagesHandler) UploadMany(r *http.Request, folder types.Folder,files []*multipart.FileHeader, ctx context.Context) ([]*types.UploadResponse, []error) {
 	folderAsString := string(folder)
 	var mu sync.Mutex
 	var wg sync.WaitGroup
-	UploadResponses := make([]*UploadResponse, 0, len(files))
+	UploadResponses := make([]*types.UploadResponse, 0, len(files))
 	errors := make([]error, 0)
 
 	for _, fileHeader := range files {
@@ -130,7 +99,7 @@ func (ih *ImagesHandler) DeleteOne(PublicID string, ctx context.Context) error {
 	return nil 
 }
 
-func (ih *ImagesHandler) DeleteMany(PublicIDs []string, ctx context.Context) (*DeleteManyResponse, error) {
+func (ih *ImagesHandler) DeleteMany(PublicIDs []string, ctx context.Context) (*types.DeleteManyResponse, error) {
 	delResp, err := ih.cld.Admin.DeleteAssets(ctx, admin.DeleteAssetsParams{
 		AssetType: "image",
 		PublicIDs: PublicIDs,
@@ -142,16 +111,16 @@ func (ih *ImagesHandler) DeleteMany(PublicIDs []string, ctx context.Context) (*D
 	return ih.getDeleteManyResponse(delResp), nil
 }
 
-func (ih *ImagesHandler) getUploadResponse(uploadResult *uploader.UploadResult) *UploadResponse {
-	return &UploadResponse{
+func (ih *ImagesHandler) getUploadResponse(uploadResult *uploader.UploadResult) *types.UploadResponse {
+	return &types.UploadResponse{
 		Width: uploadResult.Width, Height: uploadResult.Height,
 		SecureUrl: uploadResult.SecureURL, PublicID: uploadResult.PublicID,
 		URL: uploadResult.URL, Format: uploadResult.Format,
 	}
 }
 
-func (ih *ImagesHandler) getDeleteManyResponse(deleteResult *admin.DeleteAssetsResult) *DeleteManyResponse {
-	return &DeleteManyResponse{
+func (ih *ImagesHandler) getDeleteManyResponse(deleteResult *admin.DeleteAssetsResult) *types.DeleteManyResponse {
+	return &types.DeleteManyResponse{
 		DeletedCounts: deleteResult.DeletedCounts,
 	}
 }

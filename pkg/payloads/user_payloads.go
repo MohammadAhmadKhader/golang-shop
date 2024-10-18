@@ -19,15 +19,12 @@ type UserSignUp struct {
 }
 
 type ResetPassword struct {
-	Password string `json:"password" validate:"required,min=6,max=24"`
-	ConfirmPassword string `json:"confirmPassword" validate:"required,min=6,max=24,eqfield=Password"`
+	OldPassword string `json:"oldPassword" validate:"required,min=6,max=24"`
+	NewPassword string `json:"newPassword" validate:"required,min=6,max=24"`
+	ConfirmNewPassword string `json:"confirmNewPassword" validate:"required,min=6,max=24,eqfield=NewPassword"`
 }
 
 type AssignRolePayload struct {
-	RoleId  uint `json:"roleId" validate:"required,min=1"`
-}
-
-type RemoveRolePayload struct {
 	RoleId  uint `json:"roleId" validate:"required,min=1"`
 }
 
@@ -49,19 +46,23 @@ func (usu *UserSignUp) TrimStrs() *UserSignUp {
 	return usu
 }
 
-func (usu *ResetPassword) TrimStrs() *ResetPassword {
-	if usu != nil {
-		usu.ConfirmPassword = strings.Trim(usu.ConfirmPassword, " ")
-		usu.Password = strings.Trim(usu.Password, " ")
+func (rp *ResetPassword) TrimStrs() *ResetPassword {
+	if rp != nil {
+		rp.OldPassword = strings.Trim(rp.OldPassword, " ")
+		rp.NewPassword = strings.Trim(rp.NewPassword, " ")
+		rp.ConfirmNewPassword = strings.Trim(rp.ConfirmNewPassword, " ")
 	}
 	
-	return usu
+	return rp
 }
 
+// Avatar must be set manually inside the route, if it was set with (ToModel) as the other fields might cause injection from the frontend.
+// The purpose of this field (Avatar) is to satisfy (Exclude) operation which ensures that this field will be updated in the database.
 type UpdateProfile struct {
 	Name     string `json:"name,omitempty" validate:"omitempty,min=4,max=32"`
 	Email    string `json:"email,omitempty" validate:"omitempty,email,max=64"`
 	MobileNumber string `json:"mobileNumber,omitempty" validate:"omitempty,min=8,max=32"`
+	Avatar string `json:"avatar,omitempty"`
 }
 
 func (up *UpdateProfile) TrimStrs() *UpdateProfile {
@@ -84,6 +85,9 @@ func (up *UpdateProfile) Exclude(selectedFields []string) []string {
 	}
 	if up.MobileNumber == "" {
 		removedCols["MobileNumber"] = 1
+	}
+	if up.Avatar == "" {
+		removedCols["Avatar"] = 1
 	}
 	
 	selectedFields = slices.DeleteFunc(selectedFields, func(element string) bool {

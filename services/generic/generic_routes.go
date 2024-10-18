@@ -33,6 +33,7 @@ func NewHandler[TModel any](store Store[TModel]) *Handler[TModel] {
 }
 
 var ModelNameMapper = map[string]string{
+	"users":"user",
 	"categories":"category",
 	"products":"product",
 	"roles":"role",

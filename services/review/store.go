@@ -63,15 +63,6 @@ func (reviewStore *Store) CreateReview(createPayload *models.Review) (*models.Re
 	return review, nil
 }
 
-//func (reviewStore *Store) HardDelete(Id uint) error {
-//	err := reviewStore.Generic.HardDelete(Id, notFoundMsg)
-//	if err != nil {
-//		return err
-//	}
-//
-//	return nil
-//}
-
 func (reviewStore *Store) HardDelete(Id uint, userId uint) error {
 	_,err := reviewStore.Generic.FindThenDeleteWithAuth(Id, notFoundMsg, userId)
 	if err != nil {
