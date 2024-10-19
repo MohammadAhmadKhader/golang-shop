@@ -11,6 +11,7 @@ import (
 	"main.go/pkg/models"
 	"main.go/pkg/payloads"
 	"main.go/pkg/utils"
+	"main.go/types"
 )
 
 type Handler struct {
@@ -48,7 +49,7 @@ func (h *Handler) GetAllReviews(w http.ResponseWriter, r *http.Request) {
 	conditions := utils.GetFilterConditions(r, whiteListedParams)
 	sortString := utils.GetSortQ(r, whiteListedSortParams)
 
-	reviews, count, err := utils.GenericFilterWithJoins[models.Review, GetAllReviewsRow](
+	reviews, count, err := utils.GenericFilterWithJoins[models.Review, types.GetAllReviewsRow](
 		&utils.GenericFilterConfigWithJoins{
 			DB:                h.store.DB,
 			Filters:           conditions,

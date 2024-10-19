@@ -7,6 +7,7 @@ import (
 	"gorm.io/gorm"
 	"main.go/pkg/models"
 	"main.go/services/generic"
+	"main.go/types"
 )
 
 type Store struct {
@@ -25,8 +26,8 @@ var (
 	notFoundMsg = "order with id: '%v' is not found"
 )
 
-func (orderStore *Store) GetPopulatedOrderById(Id uint) ([]GetOneOrderRow, error) {
-	var order []GetOneOrderRow
+func (orderStore *Store) GetPopulatedOrderById(Id uint) ([]types.GetOneOrderRow, error) {
+	var order []types.GetOneOrderRow
 	err := orderStore.DB.Model(&models.Order{}).Select(selectOneOrderQ).Where("orders.id = ?", Id).
 		Joins(jointWAddress).Joins(joinWOrderItems).Joins(joinWProducts).Joins(jointWProductImages).
 		Scan(&order).Error

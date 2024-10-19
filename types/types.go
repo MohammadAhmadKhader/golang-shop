@@ -35,7 +35,7 @@ type CategoryStore interface {
 }
 
 type OrderStore interface {
-	GetPopulatedOrderById(Id uint) (*models.Order, error) // must be changed
+	GetPopulatedOrderById(Id uint) ([]GetOneOrderRow, error)
 	CreateOrder(tx *gorm.DB, order *models.Order)
 	GetAllOrders(page, limit int) ([]models.Order, int64, error)
 	GetProductsByIds(Ids []uint) ([]models.Product, error)
@@ -52,7 +52,7 @@ type OrderStore interface {
 }
 
 type ProductStore interface {
-	GetProductById(Id uint) (*models.Product, error) // must be changed
+	GetProductById(Id uint) ([]RowGetProductById, error)
 	GetAllProducts(page, limit int, filter func(db *gorm.DB, filters []FilterCondition) ([]models.Product, error)) ([]models.Product, int64, error)
 	CreateProduct(product *models.Product) (*models.Product, error)
 	UpdateProduct(id uint, changes *models.Product, excluder Excluder) (*models.Product, error)

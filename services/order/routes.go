@@ -11,6 +11,7 @@ import (
 	"main.go/pkg/payloads"
 	"main.go/pkg/utils"
 	"main.go/services/auth"
+	"main.go/types"
 )
 
 type Handler struct {
@@ -59,7 +60,7 @@ func (h *Handler) GetAllOrders(w http.ResponseWriter, r *http.Request) {
 	conditions := utils.GetFilterConditions(r, whiteListedParams)
 	sortString := utils.GetSortQ(r, whiteListedSortParams)
 
-	orders, count, errs := utils.GenericFilterWithJoins[models.Order, GetAllOrdersRows](&utils.GenericFilterConfigWithJoins{
+	orders, count, errs := utils.GenericFilterWithJoins[models.Order, types.GetAllOrdersRows](&utils.GenericFilterConfigWithJoins{
 		DB:                h.store.DB,
 		Filters:           conditions,
 		SortQ:             sortString,

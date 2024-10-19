@@ -1,7 +1,8 @@
 package order
 
 import (
-	"time"
+
+	"main.go/types"
 )
 
 var selectOneOrderQ = `orders.id as id, orders.user_id as user_id, orders.total_price as total_price, 
@@ -26,107 +27,14 @@ var joinWOrderItemsCount = `LEFT JOIN (
 	GROUP BY order_id
 ) order_items_count ON order_items_count.order_id = orders.id `
 
-type GetOneOrderRow struct {
-	Id                   uint
-	UserId               uint
-	TotalPrice           float64
-	Status               string
-	CreatedAt            time.Time
-	UpdatedAt            time.Time
-	OrderItemId          uint
-	UnitPrice            float64
-	OrderItemQuantity    uint8
-	AddressId            uint
-	AddressFullName      string
-	AddressCity          string
-	AddressCountry       string
-	AddressStreetAddress string
-	AddressZipCode       *string
-	AddressState         *string
-	ProductId            uint
-	ProductName          string
-	ProductQuantity      uint
-	ProductPrice         float64
-	ProductImageUrl string
-	ProductImageIsMain bool
-}
-type GetAllOrdersRows struct {
-	Id                   uint
-	UserId               uint
-	TotalPrice           float64
-	Status               string
-	CreatedAt            time.Time
-	UpdatedAt            time.Time
-	OrderItemsCount      uint
-	AddressId            uint
-	AddressFullName      string
-	AddressCity          string
-	AddressCountry       string
-	AddressStreetAddress string
-	AddressZipCode       *string
-	AddressState         *string
-}
-
-type respAllOrders struct {
-	Id              uint        `json:"id"`
-	UserId          uint        `json:"userId"`
-	TotalPrice      float64     `json:"totalPrice"`
-	Status          string      `json:"status"`
-	OrderItemsCount uint        `json:"orderItemsCount"`
-	Address         respAddress `json:"address"`
-	CreatedAt       time.Time   `json:"createdAt"`
-	UpdatedAt       time.Time   `json:"updatedAt"`
-}
-
-type respOneOrder struct {
-	Id         uint            `json:"id"`
-	UserId     uint            `json:"userId"`
-	TotalPrice float64         `json:"totalPrice"`
-	Status     string          `json:"status"`
-	OrderItems []respOrderItem `json:"orderItems"`
-	Address    respAddress     `json:"address"`
-	CreatedAt  time.Time       `json:"createdAt"`
-	UpdatedAt  time.Time       `json:"updatedAt"`
-}
-
-type respOrderItem struct {
-	Id       uint        `json:"id"`
-	Price    float64     `json:"price"`
-	Quantity uint8       `json:"quantity"`
-	Product  respProduct `json:"product"`
-}
-
-type respProduct struct {
-	Id       uint    `json:"id"`
-	Name     string  `json:"name"`
-	Quantity uint    `json:"quantity"`
-	Price    float64 `json:"price"`
-	MainImage respImage `json:"mainImage"`
-}
-
-type respImage struct {
-	IsMain bool `json:"isMain"`
-	ImageUrl string `json:"imageUrl"`
-}
-
-type respAddress struct {
-	Id            uint    `json:"id"`
-	FullName      string  `json:"fullName"`
-	City          string  `json:"city"`
-	StreetAddress string  `json:"streetAddress"`
-	State         *string `json:"state"`
-	ZipCode       *string `json:"zipCode"`
-	Country       string  `json:"country"`
-}
-
-func convertRowsToResp(rows []GetAllOrdersRows) []*respAllOrders {
+func convertRowsToResp(rows []types.GetAllOrdersRows) []*types.RespAllOrders {
 	orderMap := make(map[uint]uint)
-	ordersSlice := make([]*respAllOrders, 0)
+	ordersSlice := make([]*types.RespAllOrders, 0)
 
 	for _, row := range rows {
 		if _, exists := orderMap[row.Id]; !exists {
 			orderMap[row.Id] = row.Id
-			order := &respAllOrders{
+			order := &types.RespAllOrders{
 				Id:         row.Id,
 				UserId:     row.UserId,
 				TotalPrice: row.TotalPrice,
@@ -134,7 +42,7 @@ func convertRowsToResp(rows []GetAllOrdersRows) []*respAllOrders {
 				CreatedAt:  row.CreatedAt,
 
 				UpdatedAt: row.UpdatedAt,
-				Address: respAddress{
+				Address: types.RespOrderAddress{
 					Id:            row.AddressId,
 					FullName:      row.AddressFullName,
 					City:          row.AddressCity,
@@ -153,21 +61,21 @@ func convertRowsToResp(rows []GetAllOrdersRows) []*respAllOrders {
 	return ordersSlice
 }
 
-func convertRowToResp(rows []GetOneOrderRow) *respOneOrder {
+func convertRowToResp(rows []types.GetOneOrderRow) *types.RespOneOrder {
 	orderMap := make(map[uint]uint)
-	order := new(respOneOrder)
+	order := new(types.RespOneOrder)
 
 	for _, row := range rows {
 		if _, exists := orderMap[row.Id]; !exists {
 			orderMap[row.Id] = row.Id
-			rowOrder := &respOneOrder{
+			rowOrder := &types.RespOneOrder{
 				Id:         row.Id,
 				UserId:     row.UserId,
 				TotalPrice: row.TotalPrice,
 				Status:     row.Status,
 				CreatedAt:  row.CreatedAt,
 				UpdatedAt:  row.UpdatedAt,
-				Address: respAddress{
+				Address: types.RespOrderAddress{
 					Id:            row.AddressId,
 					FullName:      row.AddressFullName,
 					City:          row.AddressCity,
@@ -176,22 +84,22 @@ func convertRowToResp(rows []GetOneOrderRow) *respOneOrder {
 					State:         row.AddressState,
 					ZipCode:       row.AddressZipCode,
 				},
-				OrderItems: []respOrderItem{},
+				OrderItems: []types.RespOrderItem{},
 			}
 
 			order = rowOrder
 		}
 
-		order.OrderItems = append(order.OrderItems, respOrderItem{
+		order.OrderItems = append(order.OrderItems, types.RespOrderItem{
 			Id:       row.OrderItemId,
 			Price:    row.UnitPrice,
 			Quantity: row.OrderItemQuantity,
-			Product: respProduct{
+			Product: types.RespOrderItemProduct{
 				Id:       row.ProductId,
 				Name:     row.ProductName,
 				Quantity: row.ProductQuantity,
 				Price:    row.ProductPrice,
-				MainImage: respImage{
+				MainImage: types.RespOrderItemImage{
 					IsMain: row.ProductImageIsMain,
 					ImageUrl: row.ProductImageUrl,
 				},
