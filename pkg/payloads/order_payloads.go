@@ -12,7 +12,7 @@ type CreateOrder struct {
 }
 
 type UpdateOrder struct {
-	Status models.Status `json:"status" validate:"required"`
+	Status models.Status `json:"status" validate:"required,oneof=Delivered"`
 }
 
 func (co *CreateOrder) GetProductsIds(orderItems []OrderPayloadItem) []uint {

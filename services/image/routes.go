@@ -142,7 +142,7 @@ func (h *Handler) UpdateImageById(w http.ResponseWriter, r *http.Request) {
 
 	image, err := h.store.GetImageById(*imageId)
 	if err != nil {
-		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("image with id: '%v' was not found", *imageId))
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("image with id: '%v' was not found", imageId))
 		return
 	}
 

@@ -215,14 +215,15 @@ func GetEmailFromToken(r *http.Request) (*string, error) {
 
 func GetValidateId(r *http.Request, pathKey string) (*uint, error) {
 	IdAsString := r.PathValue(pathKey)
+	var uintId uint
 	Id, err := strconv.ParseUint(IdAsString, 10, 64)
 	if err != nil {
-		return nil, err
+		return &uintId, err
 	}
 	if Id == 0 {
-		return nil, fmt.Errorf("id can not be 0")
+		return &uintId, fmt.Errorf("id can not be 0")
 	}
-	uintId := uint(Id)
+	uintId = uint(Id)
 
 	return &uintId, nil
 }

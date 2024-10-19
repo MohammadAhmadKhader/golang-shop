@@ -29,13 +29,14 @@ func invalidOrderIdErr(id uint) error {
 }
 
 var Authenticate = middlewares.Authenticate
+var AuthorizeAdmin = middlewares.AuthorizeAdmin
 
 func (h *Handler) RegisterRoutes(router *http.ServeMux) {
 	router.HandleFunc(utils.RoutePath("GET", "/orders/{id}"), Authenticate(h.GetOrderById))
 	router.HandleFunc(utils.RoutePath("GET", "/orders"), Authenticate(h.GetAllOrders))
 	router.HandleFunc(utils.RoutePath("POST", "/orders"), Authenticate(h.CreateOrder))
 	router.HandleFunc(utils.RoutePath("DELETE", "/orders/{id}"), Authenticate(h.CancelOrderById))
-	router.HandleFunc(utils.RoutePath("PATCH", "/orders/{id}/status"), Authenticate(h.UpdateOrderStatusById))
+	router.HandleFunc(utils.RoutePath("PATCH", "/orders/{id}/status"), Authenticate(AuthorizeAdmin(h.UpdateOrderStatusById)))
 }
 
 func (h *Handler) GetOrderById(w http.ResponseWriter, r *http.Request) {
@@ -157,18 +158,14 @@ func (h *Handler) UpdateOrderStatusById(w http.ResponseWriter, r *http.Request) 
 		utils.WriteError(w, http.StatusBadRequest, invalidOrderIdErr(*Id))
 		return
 	}
-	userId, err := utils.GetUserIdCtx(r)
-	if err != nil {
-		auth.DenyPermission(w)
-		return
-	}
+
 	uPayload, err := utils.ValidateAndParseBody[payloads.UpdateOrder](r)
 	if err != nil {
 		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid order status"))
 		return
 	}
 
-	err = h.store.UpdateOrderStatus(*Id, *userId, uPayload.Status)
+	err = h.store.UpdateOrderStatus(*Id, uPayload.Status)
 	if err != nil {
 		utils.WriteError(w, http.StatusBadRequest, err)
 		return
