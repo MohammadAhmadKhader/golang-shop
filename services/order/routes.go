@@ -170,6 +170,7 @@ func (h *Handler) UpdateOrderStatusById(w http.ResponseWriter, r *http.Request) 
 		utils.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
+	
 
 	utils.WriteJSON(w, http.StatusNoContent, map[string]any{})
 }

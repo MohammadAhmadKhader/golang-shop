@@ -67,7 +67,7 @@ func convertRowsToProduct(rows []types.RowGetProductById) *types.RespGetOneProdu
 	IdsMap := map[string]any{}
 
 	for _, row := range rows {
-		_, exists := IdsMap[fmt.Sprintf("productId-?",row.ID)]
+		_, exists := IdsMap[fmt.Sprintf("productId-%v",row.ID)]
 		if !exists {
 			product = types.RespGetOneProductShape{
 				ID: row.ID,
@@ -81,10 +81,10 @@ func convertRowsToProduct(rows []types.RowGetProductById) *types.RespGetOneProdu
 				UpdatedAt: row.UpdatedAt,
 			}
 
-			IdsMap[fmt.Sprintf("productId-?",row.ID)] = fmt.Sprintf("productId-?",row.ID)
+			IdsMap[fmt.Sprintf("productId-%v",row.ID)] = fmt.Sprintf("productId-%v",row.ID)
 		}
 
-		_, imageExists := IdsMap[fmt.Sprintf("imageId-?",row.ImageId)]
+		_, imageExists := IdsMap[fmt.Sprintf("imageId-%v",row.ImageId)]
 		if !imageExists {
 			images = append(images, types.RowGetOneProductImage{
 				ImageId: row.ImageId,
@@ -93,10 +93,10 @@ func convertRowsToProduct(rows []types.RowGetProductById) *types.RespGetOneProdu
 				IsMain: row.IsMain,
 			})
 
-			IdsMap[fmt.Sprintf("imageId-?",row.ImageId)] = fmt.Sprintf("imageId-?",row.ImageId) 
+			IdsMap[fmt.Sprintf("imageId-%v",row.ImageId)] = fmt.Sprintf("imageId-%v",row.ImageId) 
 		}
 
-		_, reviewExist := IdsMap[fmt.Sprintf("reviewId-?",row.ImageId)]
+		_, reviewExist := IdsMap[fmt.Sprintf("reviewId-%v",row.ImageId)]
 		if !reviewExist {
 			reviews = append(reviews, types.RespProductReviewShape{
 				ReviewID: row.ReviewID,
@@ -112,7 +112,7 @@ func convertRowsToProduct(rows []types.RowGetProductById) *types.RespGetOneProdu
 				UpdatedAt: row.UpdatedAt,
 			})
 
-			IdsMap[fmt.Sprintf("reviewId-?",row.ReviewID)] = fmt.Sprintf("reviewId-?",row.ReviewID) 
+			IdsMap[fmt.Sprintf("reviewId-%v",row.ReviewID)] = fmt.Sprintf("reviewId-%v",row.ReviewID) 
 		}
 		
 	}

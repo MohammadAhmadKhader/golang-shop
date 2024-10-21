@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"gorm.io/gorm"
+	"main.go/internal/websocket"
 	"main.go/pkg/models"
 	"main.go/services/generic"
 	"main.go/types"
@@ -53,28 +54,28 @@ func (orderStore *Store) CreateOrder(tx *gorm.DB, order *models.Order) error {
 	return tx.Create(order).Error
 }
 
-func (orderStore *Store) GetProductsByIds(Ids []uint) ([]models.Product, error){
+func (orderStore *Store) GetProductsByIds(Ids []uint) ([]models.Product, error) {
 	var products = make([]models.Product, 0, len(Ids))
 	err := orderStore.DB.Where(Ids).Find(&products).Error
 
 	return products, err
 }
 
-func (orderStore *Store) ValidateAndCalTotalPrice(prods []models.Product, orderItems []models.OrderItem) (*float64, error){
+func (orderStore *Store) ValidateAndCalTotalPrice(prods []models.Product, orderItems []models.OrderItem) (*float64, error) {
 	var totalPrice = 0.0
 
 	for _, prod := range prods {
 		for _, orderItem := range orderItems {
 			if orderItem.ProductID == prod.ID {
-				if orderItem.Quantity > prod.Quantity  {
-					return nil, fmt.Errorf("product with name: '%v' has '%v' quantity which is less than its cart item",prod.Name, prod.Quantity)
+				if orderItem.Quantity > prod.Quantity {
+					return nil, fmt.Errorf("product with name: '%v' has '%v' quantity which is less than its cart item", prod.Name, prod.Quantity)
 				}
 
-				totalPrice= totalPrice + (prod.Price * float64(orderItem.Quantity))
+				totalPrice = totalPrice + (prod.Price * float64(orderItem.Quantity))
 			}
 		}
 	}
-	
+
 	return &totalPrice, nil
 }
 
@@ -120,7 +121,6 @@ func (orderStore *Store) CreateOrderWithItems(order *models.Order, userId *uint,
 			return err
 		}
 
-		
 		err = orderStore.EmptyTheCartTx(tx, *userId)
 		if err != nil {
 			return err
@@ -139,8 +139,8 @@ func (orderStore *Store) CancelOrder(id uint, userId uint) error {
 	if order.Status == models.Cancelled {
 		return fmt.Errorf("order is already cancelled")
 	}
-	
-	err = orderStore.DB.Model(&order).Where("id = ? AND user_id = ?", id, userId).Update("status",string(models.Cancelled)).Error
+
+	err = orderStore.DB.Model(&order).Where("id = ? AND user_id = ?", id, userId).Update("status", string(models.Cancelled)).Error
 	if err != nil {
 		return err
 	}
@@ -150,16 +150,27 @@ func (orderStore *Store) CancelOrder(id uint, userId uint) error {
 
 func (orderStore *Store) UpdateOrderStatus(id uint, status models.Status) error {
 	var order models.Order
-	err := orderStore.DB.Model(&order).First(&order,id).Error
-	if err != nil {
-		return fmt.Errorf(notFoundMsg, id)
-	}
-	err = orderStore.DB.Model(&order).First(&order,id).Update("status",string(status)).Error
-	if err != nil {
-		return err
-	}
+	return orderStore.DB.Transaction(func(tx *gorm.DB) error {
+		err := tx.Model(&order).First(&order, id).Error
+		if err != nil {
+			return fmt.Errorf(notFoundMsg, id)
+		}
 
-	return nil
+		err = tx.Model(&order).First(&order, id).Update("status", string(status)).Error
+		if err != nil {
+			return err
+		}
+
+		if status == models.Delivered {
+			WSProduct,err := orderStore.UpdateProductQtys(tx, id)
+			if err != nil {
+				return err
+			}
+
+			websocket.BroadcastProductQtyChange(WSProduct)
+		}
+		return nil
+	})
 }
 
 func (orderStore *Store) GetAddressById(addressId uint) (*models.Address, error) {
@@ -173,7 +184,7 @@ func (orderStore *Store) GetAddressById(addressId uint) (*models.Address, error)
 }
 
 func (orderStore *Store) EmptyTheCartTx(tx *gorm.DB, userId uint) error {
-	return tx.Model(&models.CartItem{}).Where("user_id = ?",userId).Delete(&models.CartItem{}).Error
+	return tx.Model(&models.CartItem{}).Where("user_id = ?", userId).Delete(&models.CartItem{}).Error
 }
 
 func (orderStore *Store) GetCart(userId uint) ([]models.CartItem, error) {
@@ -198,9 +209,9 @@ func (orderStore *Store) ConvertToOrderItems(cart []models.CartItem) []models.Or
 	var orderItems = make([]models.OrderItem, 0, len(cart))
 	for _, cartItem := range cart {
 		orderItems = append(orderItems, models.OrderItem{
-			Quantity: cartItem.Quantity,
+			Quantity:  cartItem.Quantity,
 			ProductID: cartItem.ProductID,
-			Product: cartItem.Product,
+			Product:   cartItem.Product,
 		})
 	}
 
@@ -216,4 +227,44 @@ func (orderStore *Store) ExtractProductIds(cart []models.CartItem) []uint {
 	return productsIds
 }
 
+func (orderStore *Store) UpdateProductQtys(tx *gorm.DB,orderId uint) ([]websocket.WSProduct, error) {
+	orderItems, err := orderStore.GetOrderItems(orderId)
+	if err != nil {
+		return nil, err
+	}
+	productsIds := make([]uint, 0, len(orderItems))
+	for _, orderItem := range orderItems {
+		productsIds = append(productsIds, orderItem.ProductID)
+	}
 
+	var productQtyChange = make([]websocket.WSProduct, 0, len(orderItems))
+
+	caseStatement := "CASE "
+	for _, orderItem := range orderItems {
+		caseStatement += fmt.Sprintf("WHEN id = %d THEN quantity - %d ", orderItem.ProductID, orderItem.Quantity)
+		productQtyChange = append(productQtyChange, websocket.WSProduct{
+			ID: orderItem.ProductID,
+			DiscountAmount: orderItem.Quantity,
+		})
+		
+	}
+	caseStatement += " END"
+
+	err = orderStore.DB.Model(&models.Product{}).Unscoped().Where("id IN ?", productsIds).
+	UpdateColumn("quantity", gorm.Expr(caseStatement)).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return productQtyChange, nil
+}
+
+func (orderStore *Store) GetOrderItems(orderId uint) ([]models.OrderItem, error) {
+	var orderItems []models.OrderItem
+	err := orderStore.DB.Model(&orderItems).Where(models.OrderItem{OrderID: orderId}).Find(&orderItems).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return orderItems, nil
+}

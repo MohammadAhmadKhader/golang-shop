@@ -9,6 +9,7 @@ import (
 
 	"main.go/constants"
 	appErrors "main.go/errors"
+	"main.go/internal/websocket"
 	"main.go/middlewares"
 	"main.go/pkg/payloads"
 	"main.go/pkg/utils"
@@ -63,16 +64,18 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	otp := websocket.GlobalManager.Otps.NewOTP()
+
 	utils.WriteJSON(w, http.StatusCreated, map[string]any{
 		"user":  user,
 		"token": token,
+		"otp": otp.Key,
 	})
 }
 
 func (h *Handler) SignUp(w http.ResponseWriter, r *http.Request) {
 	signUpPayload, err := utils.ValidateAndParseBody[payloads.UserSignUp](r)
 	if err != nil {
-		fmt.Println(signUpPayload)
 		utils.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
@@ -127,7 +130,7 @@ func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 
 	isEqual := auth.ComparePassword(user.Password, []byte(rpPayload.OldPassword))
 	if !isEqual {
- 		utils.WriteError(w, http.StatusBadRequest, appErrors.ErrPasswordsNotMatching)
+		utils.WriteError(w, http.StatusBadRequest, appErrors.ErrPasswordsNotMatching)
 		return
 	}
 
@@ -160,7 +163,7 @@ func (h *Handler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		utils.WriteError(w, http.StatusBadRequest, appErrors.ErrGenericMessage)
 		return
 	}
-	upPayload, err := utils.ValidateAndParseFormData[payloads.UpdateProfile](r, func() (*payloads.UpdateProfile, error) {
+	upPayload, err := utils.ValidateAndParseFormData(r, func() (*payloads.UpdateProfile, error) {
 		payload := &payloads.UpdateProfile{
 			Name:         r.FormValue("name"),
 			Email:        strings.ToLower(r.FormValue("email")),
@@ -170,7 +173,7 @@ func (h *Handler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	})
 
 	size1MB := 1
-	file, fileHeader,err := utils.HandleOneFileUpload(r, int64(size1MB), "avatar")
+	file, fileHeader, err := utils.HandleOneFileUpload(r, int64(size1MB), "avatar")
 	if err != nil && !errors.Is(err, appErrors.ErrNoFileFound) {
 		utils.WriteError(w, http.StatusBadRequest, err)
 		return
@@ -188,7 +191,7 @@ func (h *Handler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		upResult, err := imgHandler.UploadOne(&file, fileHeader, types.UsersFolder, context.Background())
 		if err != nil {
 			utils.WriteError(w, http.StatusInternalServerError, appErrors.ErrUnexpectedDuringImageUpload)
-			return 
+			return
 		}
 		// both them must have the avatar to ensure the field will not be excluded during the update
 		model.Avatar = &upResult.URL
@@ -203,7 +206,7 @@ func (h *Handler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	user.ID = *userId
 
 	utils.WriteJSON(w, http.StatusAccepted, map[string]any{
-		"user":    user,
+		"user": user,
 	})
 }
 
@@ -214,7 +217,7 @@ func (h *Handler) AssignUserRole(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rPayload ,err:= utils.ValidateAndParseBody[payloads.AssignRolePayload](r)
+	rPayload, err := utils.ValidateAndParseBody[payloads.AssignRolePayload](r)
 	if err != nil {
 		utils.WriteError(w, http.StatusBadRequest, err)
 		return
@@ -222,7 +225,7 @@ func (h *Handler) AssignUserRole(w http.ResponseWriter, r *http.Request) {
 
 	userRole, err := h.store.AssignUserRole(rPayload.RoleId, *Id)
 	if err != nil {
-		if utils.IsDuplicateKeyErr(err)  {
+		if utils.IsDuplicateKeyErr(err) {
 			utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("user already has this role"))
 			return
 		}
@@ -230,7 +233,7 @@ func (h *Handler) AssignUserRole(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	utils.WriteJSON(w, http.StatusAccepted, map[string]any{"userRole":userRole})
+	utils.WriteJSON(w, http.StatusAccepted, map[string]any{"userRole": userRole})
 }
 
 func (h *Handler) RemoveUserRole(w http.ResponseWriter, r *http.Request) {

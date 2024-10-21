@@ -10,6 +10,7 @@ import (
 	"main.go/services/category"
 	"main.go/services/generic"
 	"main.go/services/image"
+	"main.go/services/message"
 	"main.go/services/order"
 	"main.go/services/product"
 	"main.go/services/review"
@@ -31,6 +32,7 @@ func SetupAllServices(DB *gorm.DB, router *http.ServeMux) {
 	
 	cart.Setup(DB,router)
 	address.Setup(DB, router)
+	message.Setup(DB, router)
 	
 	role.Setup(DB, router)
 }

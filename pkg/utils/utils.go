@@ -146,6 +146,15 @@ func ValidateAndParseFormData[TPayload any](r *http.Request, formValuesGetter fu
 	return payload, nil
 }
 
+func ValidateStruct[TPayload any](model TPayload) (*TPayload, error) {
+	var payload TPayload
+	if err := Validate.Struct(payload); err != nil {
+		return nil, err
+	}
+
+	return &payload, nil
+}
+
 func HandleMultipleFilesUpload(r *http.Request, sizeInMB int64, keyName string) ([]*multipart.FileHeader, error) {
 	if err := r.ParseMultipartForm(sizeInMB << 20); err != nil {
 		return nil, fmt.Errorf("an error has occurred during parsing files")

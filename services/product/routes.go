@@ -33,7 +33,7 @@ var Pagination = middlewares.PaginationMiddleware
 
 func (h *Handler) RegisterRoutes(router *http.ServeMux) {
 	router.HandleFunc(utils.RoutePath("GET", "/products/{id}"), Authenticate(AuthorizeAdmin(h.GetProductById)))
-	router.HandleFunc(utils.RoutePath("GET", "/products"),Pagination(Authenticate(AuthorizeAdmin(h.GetAllProducts))))
+	router.HandleFunc(utils.RoutePath("GET", "/products"),Pagination(h.GetAllProducts))
 	router.HandleFunc(utils.RoutePath("POST", "/products"), Authenticate(AuthorizeAdmin(h.CreateProduct)))
 	router.HandleFunc(utils.RoutePath("PUT", "/products/{id}"), Authenticate(AuthorizeAdmin(h.UpdateProduct)))
 }

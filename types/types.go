@@ -1,6 +1,9 @@
 package types
 
 import (
+	"bufio"
+	"fmt"
+	"net"
 	"net/http"
 	"strings"
 
@@ -34,6 +37,11 @@ type CategoryStore interface {
 	UpdateCategory(category *models.Category) (*models.Category, error)
 }
 
+type ProductAmountDiscounter interface {
+	GetProductId() uint
+	GetAmountDiscount() uint
+}
+
 type OrderStore interface {
 	GetPopulatedOrderById(Id uint) ([]GetOneOrderRow, error)
 	CreateOrder(tx *gorm.DB, order *models.Order)
@@ -49,6 +57,8 @@ type OrderStore interface {
 	GetCartItemsCount(userId uint) (*int64, error)
 	ConvertToOrderItems(cart []models.CartItem) []models.OrderItem
 	ExtractProductIds(cart []models.CartItem) []uint
+	UpdateProductQtys(orderId uint) ([]ProductAmountDiscounter, error)
+	GetOrderItems(orderId uint) ([]models.OrderItem, error)
 }
 
 type ProductStore interface {
@@ -164,4 +174,12 @@ type AppResponse struct {
 func (ar *AppResponse) WriteHeader(statusCode int) {
     ar.StatusCode = statusCode
     ar.ResponseWriter.WriteHeader(statusCode)
+}
+
+func (w *AppResponse) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+    hijacker, ok := w.ResponseWriter.(http.Hijacker)
+    if !ok {
+        return nil, nil, fmt.Errorf("response writer does not support hijacking")
+    }
+    return hijacker.Hijack()
 }
