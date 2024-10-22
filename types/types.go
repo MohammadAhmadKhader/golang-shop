@@ -183,3 +183,11 @@ func (w *AppResponse) Hijack() (net.Conn, *bufio.ReadWriter, error) {
     }
     return hijacker.Hijack()
 }
+
+type WSMessageStatus string
+
+const (
+	Sent WSMessageStatus = "Sent"
+	Delivered WSMessageStatus = "Delivered"
+	Seen WSMessageStatus = "Seen"
+)

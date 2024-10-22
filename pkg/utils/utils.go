@@ -146,13 +146,12 @@ func ValidateAndParseFormData[TPayload any](r *http.Request, formValuesGetter fu
 	return payload, nil
 }
 
-func ValidateStruct[TPayload any](model TPayload) (*TPayload, error) {
-	var payload TPayload
-	if err := Validate.Struct(payload); err != nil {
-		return nil, err
+func ValidateStruct[TPayload any](model TPayload) (error) {
+	if err := Validate.Struct(model); err != nil {
+		return err
 	}
 
-	return &payload, nil
+	return nil
 }
 
 func HandleMultipleFilesUpload(r *http.Request, sizeInMB int64, keyName string) ([]*multipart.FileHeader, error) {
@@ -254,6 +253,15 @@ func GetUserIdCtx(r *http.Request) (*uint, error) {
 	}
 
 	return &user.ID, nil
+}
+
+func GetUserCtx(r *http.Request) (*models.User, error) {
+	user, ok := r.Context().Value(constants.UserKey).(*models.User)
+	if !ok {
+		return nil, fmt.Errorf("user id was not found in context")
+	}
+
+	return user, nil
 }
 
 func GetResourceCtx[TModel any](r *http.Request, modelName string) (*TModel, error) {

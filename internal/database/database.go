@@ -43,7 +43,7 @@ func InitDB() *gorm.DB {
 		&models.Category{}, &models.Product{}, &models.User{},
 		&models.CartItem{}, &models.Review{}, &models.Order{},
 		&models.OrderItem{}, &models.Image{}, &models.Role{},
-		&models.UserRoles{}, &models.Address{},
+		&models.UserRoles{}, &models.Address{}, &models.Message{},
 	)
 	if err != nil {
 		panic(err)

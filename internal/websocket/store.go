@@ -23,43 +23,69 @@ var selectedFields = []string{}
 
 
 func (s *Store) CreateMessage(message models.Message) error {
-	validatedMsg, err := utils.ValidateStruct(message)
+	err := utils.ValidateStruct(message)
 	if err != nil {
 		return err
 	}
 
-	err = s.DB.Create(validatedMsg).Error
+	err = s.DB.Create(&message).Error
 	if err != nil {
 		return err
 	}
+
+	BroadcastCUMessage(message, []uint{message.From,message.To}, MessageCreated)
+
 	return nil
 }
 
-func (s *Store) UpdateMessage(id uint, changes models.Message, exculuder types.Excluder) (*models.Message, error){
+func (s *Store) UpdateMessage(id uint, changes models.Message, excluder types.Excluder) (*models.Message, error){
 	var message models.Message
-	err := s.DB.First(message,id).Error
+	err := s.DB.First(&message,id).Error
 	if err != nil {
 		return nil, err
 	}
 
-	fields := exculuder.Exclude(selectedFields)
+	fields := excluder.Exclude(selectedFields)
 	err = s.DB.Model(&message).Select(fields).Updates(changes).Error
 	if err != nil {
 		return nil, err
 	}
+
+	BroadcastCUMessage(message, []uint{message.From,message.To}, MessageUpdated)
 
 	return &message, nil
 }
 
 func (s *Store) DeleteMessage(id uint) error {
 	var msg models.Message
-	res := s.DB.Delete(msg, id)
-	if res.Error != nil {
-		return res.Error
-	}
-	if res.RowsAffected == 0 {
+	err := s.DB.First(&msg, id).Error
+	if err != nil {
 		return fmt.Errorf("message with id: '%v' was not found", id)
 	}
+	
+	err = s.DB.Delete(msg, id).Error
+	if err != nil {
+		return err
+	}
+
+	BroadcastDMessage(DeleteMessagePayload{Id: msg.ID}, []uint{msg.From,msg.To})
+
+	return nil
+}
+
+func (s *Store) UpdateMessageStatus(id uint, status string) (error){
+	var message models.Message
+	err := s.DB.First(&message,id).Error
+	if err != nil {
+		return err
+	}
+
+	res := s.DB.Model(&message).Update("status",status)
+	if res.Error != nil {
+		return err
+	}
+
+	BroadcastCUMessage(message, []uint{message.From,message.To}, MessageStatusUpdated)
 
 	return nil
 }

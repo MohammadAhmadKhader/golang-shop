@@ -31,6 +31,7 @@ var Authenticate = middlewares.Authenticate
 var AuthorizeSuperAdmin = middlewares.AuthorizeSuperAdmin
 
 func (h *Handler) RegisterRoutes(router *http.ServeMux) {
+	router.HandleFunc(utils.RoutePath("GET", "/users"), Authenticate(h.GetUserByToken))
 	router.HandleFunc(utils.RoutePath("POST", "/users/login"), h.Login)
 	router.HandleFunc(utils.RoutePath("POST", "/users/sign-up"), h.SignUp)
 	router.HandleFunc(utils.RoutePath("PATCH", "/users/{id}/reset-password"), Authenticate(h.ResetPassword))
@@ -171,6 +172,10 @@ func (h *Handler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		}
 		return payload, nil
 	})
+	if err != nil {
+		utils.WriteError(w, http.StatusBadRequest, err)
+		return
+	}
 
 	size1MB := 1
 	file, fileHeader, err := utils.HandleOneFileUpload(r, int64(size1MB), "avatar")
@@ -256,4 +261,19 @@ func (h *Handler) RemoveUserRole(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utils.WriteJSON(w, http.StatusNoContent, map[string]any{})
+}
+
+func (h *Handler) GetUserByToken(w http.ResponseWriter, r *http.Request) {
+	user, err := utils.GetUserCtx(r)
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, appErrors.ErrGenericMessage)
+		return
+	}
+	
+	otp := websocket.GlobalManager.Otps.NewOTP()
+
+	utils.WriteJSON(w, http.StatusOK, map[string]any{
+		"user":user,
+		"otp":otp.Key,
+	})
 }

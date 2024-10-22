@@ -29,6 +29,7 @@ func NewManager(ctx context.Context) *Manager {
 		GlobalManager = &Manager{
 			clients:  make(Clients),
 			handlers: make(map[string]EventHandler),
+			registedClients: make(map[uint][]*Client),
 			Otps:     NewRetentionMap(ctx, retentionPeriod),
 			store: NewStore(database.DB),
 		}
@@ -41,9 +42,10 @@ func NewManager(ctx context.Context) *Manager {
 
 func (m *Manager) serveWS(w http.ResponseWriter, r *http.Request) {
 	otp := r.URL.Query().Get("otp")
-	if otp != "" && !m.Otps.ValidateOTP(otp) {
+	fmt.Println("otp key: ", otp)
+	isCorrectOTP := otp != "" && m.Otps.ValidateOTP(otp)
+	if !isCorrectOTP {
 		log.Println("invalid OTP")
-		return
 	}
 
 	ws, err := upgrader.Upgrade(w, r, nil)
@@ -52,29 +54,32 @@ func (m *Manager) serveWS(w http.ResponseWriter, r *http.Request) {
 	}
 
 	client := NewClient(ws, m)
-
 	userId, err := utils.GetUserIdCtx(r)
-	if err != nil {
+	if err != nil || !isCorrectOTP {
 		log.Println("Guest client")
 	} else {
-
+		log.Println("RegularUser client")
 	}
 	m.addClient(client, userId)
 
-	go client.readMessage()
+	
 	// this only available for validated OTP (session Id)
-	// un-registed clients can listen to the product stocks changes only
+	// un-registed clients can listen to the product stocks changes only so we run the heart beats for them
 
-	if otp != "" {
+	if isCorrectOTP {
+		go client.readMessage()
 		go client.writeMessage()
+	} else {
+		go client.runHeartBeat()
 	}
 }
 
 func (m *Manager) setupEventHandlers() {
 	m.handlers[string(MessageCreate)] = HandleMessageCreate
+	m.handlers[string(MessageUpdate)] = HandleMessageUpdate
+	m.handlers[string(MessageDelete)] = HandleMessageDelete
+	m.handlers[string(MessageStatusUpdate)] = HandleMessageUpdateStatus
 }
-
-
 
 func (m *Manager) routeHandler(event Event, client *Client) error {
 	handler, ok := m.handlers[string(event.Type)]
@@ -102,7 +107,7 @@ func (m *Manager) addClient(client *Client, userId *uint) {
 	m.Lock()
 	m.clients[client] = true
 	if userId != nil {
-		m.registedClients[*userId] = client
+		m.registedClients[*userId] = append(m.registedClients[*userId], client)
 	}
 
 	m.Unlock()

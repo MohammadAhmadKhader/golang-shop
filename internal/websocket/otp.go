@@ -19,7 +19,11 @@ var mu sync.Mutex
 
 func NewRetentionMap(ctx context.Context, retentionPeriod time.Duration) RetentionMap {
 	rm := make(RetentionMap, 0)
-
+	passKey := "passKey"
+	rm[passKey] = OTP{
+		Key: passKey,
+		CreatedAt: time.Now(),
+	}
 	go rm.Retention(ctx, retentionPeriod)
 	return rm
 }
