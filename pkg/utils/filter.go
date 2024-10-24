@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"gorm.io/gorm"
+	"main.go/internal/database"
 	"main.go/types"
 )
 
@@ -65,10 +66,12 @@ func GenericFilterWithJoins[TModel any,TRow any](config *GenericFilterConfigWith
 	var err1_Mu sync.Mutex
 	var err2_Mu sync.Mutex
 	var results []TRow
-	
+
+	DB := database.DB
+
 	page := config.Pagination.Page
 	limit := config.Pagination.Limit
-	query := config.DB.Model(new(TModel))
+	query := DB.Model(new(TModel))
 
 	for _, filter := range config.Filters {
 		if config.WhiteListedParams[filter.Field] != nil {
@@ -170,7 +173,6 @@ type GenericFilterConfig struct {
 }
 
 type GenericFilterConfigWithJoins struct {
-	DB *gorm.DB
 	Filters []types.FilterCondition
 	SortQ string
 	Pagination types.Pagination

@@ -227,7 +227,7 @@ func (orderStore *Store) ExtractProductIds(cart []models.CartItem) []uint {
 	return productsIds
 }
 
-func (orderStore *Store) UpdateProductQtys(tx *gorm.DB,orderId uint) ([]websocket.WSProduct, error) {
+func (orderStore *Store) UpdateProductQtys(tx *gorm.DB,orderId uint) ([]types.ProductAmountDiscounter, error) {
 	orderItems, err := orderStore.GetOrderItems(orderId)
 	if err != nil {
 		return nil, err
@@ -237,7 +237,7 @@ func (orderStore *Store) UpdateProductQtys(tx *gorm.DB,orderId uint) ([]websocke
 		productsIds = append(productsIds, orderItem.ProductID)
 	}
 
-	var productQtyChange = make([]websocket.WSProduct, 0, len(orderItems))
+	var productQtyChange = make([]types.ProductAmountDiscounter, 0, len(orderItems))
 
 	caseStatement := "CASE "
 	for _, orderItem := range orderItems {

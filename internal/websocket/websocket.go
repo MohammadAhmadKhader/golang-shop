@@ -8,7 +8,9 @@ import (
 
 	"github.com/gorilla/websocket"
 	"main.go/pkg/models"
+	"main.go/types"
 )
+
 // TODO: there functions must be moved the manager, so they used the manager locks, or these locks will not function properly
 // read and write buffers will be adjusted lately to avoid wasting memory
 var upgrader = websocket.Upgrader{
@@ -21,7 +23,7 @@ var upgrader = websocket.Upgrader{
 var muRegistedClients sync.RWMutex
 // we will use userId => connection, so when we want to send a message to a specific user we do not need to loop all over users.
 var muClients sync.RWMutex
-func BroadcastProductQtyChange(products []WSProduct) {
+func BroadcastProductQtyChange(products []types.ProductAmountDiscounter) {
 	productsMsg, err := json.Marshal(products)
 	if err != nil {
 		log.Fatal(err)
@@ -84,4 +86,3 @@ func BroadcastDMessage(payload DeleteMessagePayload, userIds []uint) {
 		}
 	}
 }
-

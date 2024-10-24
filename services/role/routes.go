@@ -8,15 +8,16 @@ import (
 	"main.go/middlewares"
 	"main.go/pkg/payloads"
 	"main.go/pkg/utils"
+	"main.go/types"
 )
 
 type Handler struct {
-	store Store
+	store types.RolesStore
 }
 
 func NewHandler(store Store) *Handler {
 	return &Handler{
-		store: store,
+		store: &store,
 	}
 }
 

@@ -12,12 +12,12 @@ import (
 )
 
 type Handler struct {
-	store Store
+	store types.ImageStore
 }
 
 func NewHandler(store Store) *Handler {
 	return &Handler{
-		store: store,
+		store: &store,
 	}
 }
 const (

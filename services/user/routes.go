@@ -18,12 +18,12 @@ import (
 )
 
 type Handler struct {
-	store Store
+	store types.UserStore
 }
 
 func NewHandler(store Store) *Handler {
 	return &Handler{
-		store: store,
+		store: &store,
 	}
 }
 

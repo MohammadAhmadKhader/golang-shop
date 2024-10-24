@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 	"strings"
+	"time"
 
 	"gorm.io/gorm"
 	"main.go/pkg/models"
@@ -34,7 +35,7 @@ type CategoryStore interface {
 	GetCategoryById(Id uint) (*models.Category, error)
 	GetAllCategories(page, limit int) ([]models.Category, int64, error)
 	CreateCategory(category *models.Category) (*models.Category, error)
-	UpdateCategory(category *models.Category) (*models.Category, error)
+	UpdateCategory(id uint, category *models.Category) (*models.Category, error)
 }
 
 type ProductAmountDiscounter interface {
@@ -44,7 +45,7 @@ type ProductAmountDiscounter interface {
 
 type OrderStore interface {
 	GetPopulatedOrderById(Id uint) ([]GetOneOrderRow, error)
-	CreateOrder(tx *gorm.DB, order *models.Order)
+	CreateOrder(tx *gorm.DB, order *models.Order) error
 	GetAllOrders(page, limit int) ([]models.Order, int64, error)
 	GetProductsByIds(Ids []uint) ([]models.Product, error)
 	ValidateAndCalTotalPrice(prods []models.Product, orderItems []models.OrderItem) (*float64, error)
@@ -52,12 +53,13 @@ type OrderStore interface {
 	CreateOrderWithItems(order *models.Order, userId *uint, orderItems []models.OrderItem) error
 	EmptyTheCartTx(tx *gorm.DB, userId uint) error
 	CancelOrder(Id uint, userId uint) error
-	UpdateOrderStatus(Id uint, userId uint, status models.Status) error
+	UpdateOrderStatus(Id uint, status models.Status) error
 	GetAddressById(addressId uint) (*models.Address, error)
 	GetCartItemsCount(userId uint) (*int64, error)
+	GetCart(userId uint) ([]models.CartItem, error)
 	ConvertToOrderItems(cart []models.CartItem) []models.OrderItem
 	ExtractProductIds(cart []models.CartItem) []uint
-	UpdateProductQtys(orderId uint) ([]ProductAmountDiscounter, error)
+	UpdateProductQtys(tx *gorm.DB,orderId uint) ([]ProductAmountDiscounter, error)
 	GetOrderItems(orderId uint) ([]models.OrderItem, error)
 }
 
@@ -101,6 +103,38 @@ type ImageStore interface {
 	SetImageAsNotMainTx(tx *gorm.DB, productId uint) error
 	SwapMainStatus(id, productId uint) error
 	CreateManyImages(uploadResults []*UploadResponse, productId *uint) ([]models.Image, error)
+}
+
+type RolesStore interface {
+	GetRole(id uint) (*models.Role, error)
+	GetAllRoles(page, limit int) ([]models.Role, int64, error)
+	CreateRole(role *models.Role) (*models.Role, error)
+	UpdateRole(id uint, role *models.Role) (*models.Role, error)
+	DeleteRole(id uint) error
+}
+
+type MessageStore interface {
+	GetById(userId uint, lastMessageId uint, cursor time.Time, limit int) ([]*models.Message, error)
+	GetByUsersIds(userId uint, to uint, lastMessageId uint, cursor time.Time, limit int) ([]*models.Message, error)
+}
+
+type CartStore interface {
+	GetCartItemById(Id uint) (*models.CartItem, error)
+	ChangeCartItemQty(oldQty uint, payload *payloads.ChangeCartItemQty, cartItem *models.CartItem) (*models.CartItem, error)
+	GetCartByUserId(userId uint) (*RespCartShape, error)
+	AddToCart(payload *payloads.AddCartItem, userId uint) (*models.CartItem, error)
+	DeleteCartItem(itemId uint) error
+	ClearCart(userId uint) error
+}
+
+type AddressStore interface {
+	GetById(id uint, userId uint) (*models.Address, error)
+	GetAddressById(id uint) (*models.Address, error)
+	CreateAddress(address *models.Address) (*models.Address, error)
+	UpdateAddress(id uint, address *models.Address, excluder Excluder) (*models.Address, error)
+	DeleteAddress(id uint, userId uint) (error)
+	GetAllAddresses(userId uint) ([]models.Address, error)
+	GetUndeletedAddressesCount(userId uint) (*int64, error)
 }
 
 type TokenPayload struct {

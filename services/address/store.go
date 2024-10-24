@@ -1,12 +1,9 @@
 package address
 
 import (
-	"net/http"
-
 	"gorm.io/gorm"
 	"main.go/constants"
 	"main.go/pkg/models"
-	"main.go/pkg/utils"
 	"main.go/services/generic"
 	"main.go/types"
 )
@@ -91,13 +88,4 @@ func (addressStore *Store) GetUndeletedAddressesCount(userId uint) (*int64, erro
 	}
 
 	return &count,  err
-}
-
-func (addressStore *Store) GetCartItemCtx(r *http.Request) (*models.Address, error) {
-	address, err := utils.GetResourceCtx[models.Address](r, "address")
-	if err != nil {
-		return nil, err
-	}
-
-	return address, nil
 }

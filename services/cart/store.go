@@ -7,6 +7,7 @@ import (
 	"main.go/pkg/models"
 	"main.go/pkg/payloads"
 	"main.go/services/generic"
+	"main.go/types"
 )
 
 type Store struct {
@@ -59,8 +60,8 @@ func (cartStore *Store) ChangeCartItemQty(oldQty uint, payload *payloads.ChangeC
 	return cartItem, err
 }
 
-func (cartStore *Store) GetCartByUserId(userId uint) (*respCart, error) {
-	var res = make([]getCartRow, 0)
+func (cartStore *Store) GetCartByUserId(userId uint) (*types.RespCartShape, error) {
+	var res = make([]types.GetCartRow, 0)
 	err := cartStore.DB.Table("cart_items").
 		Select(selectQ).
 		Joins(joinWProducts).

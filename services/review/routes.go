@@ -15,12 +15,12 @@ import (
 )
 
 type Handler struct {
-	store Store
+	store types.ReviewStore
 }
 
 func NewHandler(store Store) *Handler {
 	return &Handler{
-		store: store,
+		store: &store,
 	}
 }
 
@@ -51,7 +51,6 @@ func (h *Handler) GetAllReviews(w http.ResponseWriter, r *http.Request) {
 
 	reviews, count, err := utils.GenericFilterWithJoins[models.Review, types.GetAllReviewsRow](
 		&utils.GenericFilterConfigWithJoins{
-			DB:                h.store.DB,
 			Filters:           conditions,
 			SortQ:             sortString,
 			Pagination:        pagination,

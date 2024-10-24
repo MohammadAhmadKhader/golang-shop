@@ -14,12 +14,12 @@ import (
 )
 
 type Handler struct {
-	store Store
+	store types.ProductStore
 }
 
 func NewHandler(store Store) *Handler {
 	return &Handler{
-		store: store,
+		store: &store,
 	}
 }
 
@@ -61,7 +61,6 @@ func (h *Handler) GetAllProducts(w http.ResponseWriter, r *http.Request) {
 	conditions := utils.GetFilterConditions(r, whiteListedParams)
 	sortString := utils.GetSortQ(r, whiteListedSortParams)
 	rows, count, err := utils.GenericFilterWithJoins[models.Product, types.GetAllProductsRow](&utils.GenericFilterConfigWithJoins{
-		DB:                h.store.DB,
 		Filters:           conditions,
 		SortQ:             sortString,
 		Pagination:        pagination,

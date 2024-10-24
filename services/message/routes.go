@@ -7,16 +7,17 @@ import (
 	"main.go/errors"
 	"main.go/middlewares"
 	"main.go/pkg/utils"
+	"main.go/types"
 )
 
 type Handler struct {
-	store Store
+	store types.MessageStore
 }
 
 
 func NewHandler(store Store) *Handler {
 	return &Handler{
-		store: store,
+		store: &store,
 	}
 }
 
