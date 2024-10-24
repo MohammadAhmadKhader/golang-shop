@@ -33,7 +33,7 @@ func (s *Store) CreateMessage(message models.Message) error {
 		return err
 	}
 
-	BroadcastCUMessage(message, []uint{message.From,message.To}, MessageCreated)
+	GlobalManager.BroadcastCUMessage(message, []uint{message.From,message.To}, MessageCreated)
 
 	return nil
 }
@@ -51,7 +51,7 @@ func (s *Store) UpdateMessage(id uint, changes models.Message, excluder types.Ex
 		return nil, err
 	}
 
-	BroadcastCUMessage(message, []uint{message.From,message.To}, MessageUpdated)
+	GlobalManager.BroadcastCUMessage(message, []uint{message.From,message.To}, MessageUpdated)
 
 	return &message, nil
 }
@@ -68,7 +68,7 @@ func (s *Store) DeleteMessage(id uint) error {
 		return err
 	}
 
-	BroadcastDMessage(DeleteMessagePayload{Id: msg.ID}, []uint{msg.From,msg.To})
+	GlobalManager.BroadcastDMessage(DeleteMessagePayload{Id: msg.ID}, []uint{msg.From,msg.To})
 
 	return nil
 }
@@ -85,7 +85,7 @@ func (s *Store) UpdateMessageStatus(id uint, status string) (error){
 		return err
 	}
 
-	BroadcastCUMessage(message, []uint{message.From,message.To}, MessageStatusUpdated)
+	GlobalManager.BroadcastCUMessage(message, []uint{message.From,message.To}, MessageStatusUpdated)
 
 	return nil
 }

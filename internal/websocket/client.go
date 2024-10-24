@@ -21,13 +21,15 @@ type Clients map[*Client]bool
 type RegistedClients map[uint][]*Client
 
 type Client struct {
+	id *uint
 	conn    *websocket.Conn
 	manager *Manager
 	eventsChan  chan Event
 }
 
-func NewClient(conn *websocket.Conn, manager *Manager) *Client {
+func NewClient(conn *websocket.Conn, manager *Manager, id *uint) *Client {
 	return &Client{
+		id: id,
 		conn:    conn,
 		manager: manager,
 		eventsChan:  make(chan Event),

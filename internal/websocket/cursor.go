@@ -9,8 +9,6 @@ const (
 	defaultLimit = 10
 )
 
-
-
 type Cursor struct {
 	CreatedAt     time.Time `json:"createdAt"`
     Limit         int       `json:"limit"`   

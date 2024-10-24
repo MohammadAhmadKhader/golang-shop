@@ -167,7 +167,7 @@ func (orderStore *Store) UpdateOrderStatus(id uint, status models.Status) error 
 				return err
 			}
 
-			go websocket.BroadcastProductQtyChange(WSProduct)
+			go websocket.GlobalManager.BroadcastProductQtyChange(WSProduct)
 		}
 		return nil
 	})

@@ -2,6 +2,7 @@ package websocket
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -9,11 +10,14 @@ import (
 	"time"
 
 	"main.go/internal/database"
+	"main.go/pkg/models"
 	"main.go/pkg/utils"
+	"main.go/types"
 )
-
+// TODO: the locking mechanism must be re-looked at, as there are chances to have a deadlock.
 type Manager struct {
-	sync.RWMutex
+	clientsLock sync.RWMutex
+	registedClientsLock sync.RWMutex
 	clients         Clients
 	registedClients RegistedClients
 	Otps            RetentionMap
@@ -53,20 +57,21 @@ func (m *Manager) serveWS(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 
-	client := NewClient(ws, m)
+	var client *Client
 	userId, err := utils.GetUserIdCtx(r)
 	if err != nil || !isCorrectOTP {
 		log.Println("Guest client")
+		client = NewClient(ws, m, nil)
 	} else {
 		log.Println("RegularUser client")
+		client = NewClient(ws, m, userId)
 	}
-	m.addClient(client, userId)
+	m.addClient(client)
 
-	
 	// this only available for validated OTP (session Id)
 	// un-registed clients can listen to the product stocks changes only so we run the heart beats for them
 
-	if isCorrectOTP {
+	if isCorrectOTP && client.id != nil {
 		go client.readMessage()
 		go client.writeMessage()
 	} else {
@@ -95,20 +100,93 @@ func (m *Manager) routeHandler(event Event, client *Client) error {
 }
 
 func (m *Manager) deleteClient(client *Client) {
-	m.Lock()
+	m.clientsLock.Lock()
 	if _, ok := m.clients[client]; ok {
 		client.conn.Close()
 		delete(m.clients, client)
 	}
-	m.Unlock()
+	m.clientsLock.Unlock()
+
+	if client.id != nil {
+		m.registedClientsLock.Lock()
+		m.registedClients[*client.id] = append(m.registedClients[*client.id], client)
+		m.registedClientsLock.Unlock()
+	}
 }
 
-func (m *Manager) addClient(client *Client, userId *uint) {
-	m.Lock()
+func (m *Manager) addClient(client *Client) {
+	m.clientsLock.Lock()
 	m.clients[client] = true
-	if userId != nil {
-		m.registedClients[*userId] = append(m.registedClients[*userId], client)
+	m.clientsLock.Unlock()
+
+	if client.id != nil {
+		m.registedClientsLock.Lock()
+		m.registedClients[*client.id] = append(m.registedClients[*client.id], client)
+		m.registedClientsLock.Unlock()
+	}
+}
+
+
+// broadcasts Create and Update for messages
+func (m *Manager) BroadcastCUMessage(message models.Message, userIds []uint, eventType EventType) {
+	productMsg, err := json.Marshal(message)
+	if err != nil {
+		log.Fatal(err)
+		return
 	}
 
-	m.Unlock()
+	m.registedClientsLock.RLock()
+	defer m.registedClientsLock.RUnlock()
+	for client := range GlobalManager.clients {
+		err := client.conn.WriteJSON(NewEvent(eventType, productMsg))
+		if err != nil {
+			log.Println(err)
+			GlobalManager.deleteClient(client)
+			return
+		}
+	}
+}
+
+// broadcasts Delete for messages
+func (m *Manager) BroadcastDMessage(payload DeleteMessagePayload, userIds []uint) {
+	deletePayload, err := json.Marshal(payload)
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+
+	m.registedClientsLock.RLock()
+	defer m.registedClientsLock.RUnlock()
+	for _, userId := range userIds {
+		clients, isOk := GlobalManager.registedClients[userId]
+		if isOk {
+			for _, client := range clients {
+				err := client.conn.WriteJSON(NewEvent(MessageDeleted,deletePayload))
+				if err != nil {
+					log.Println(err)
+					GlobalManager.deleteClient(client)
+					return
+				}	
+			}
+		}
+	}
+}
+
+func (m *Manager) BroadcastProductQtyChange(products []types.ProductAmountDiscounter) {
+	productsMsg, err := json.Marshal(products)
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+
+	GlobalManager.clientsLock.RLock()
+	defer GlobalManager.clientsLock.RUnlock()
+	for client := range GlobalManager.clients {
+		err := client.conn.WriteJSON(NewProductStockUpdateEvent(productsMsg))
+		if err != nil {
+			log.Fatal(err)
+			GlobalManager.deleteClient(client)
+			return
+		}
+	}
 }
