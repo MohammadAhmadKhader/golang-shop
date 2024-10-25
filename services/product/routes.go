@@ -32,7 +32,7 @@ var AuthorizeAdmin = middlewares.AuthorizeAdmin
 var Pagination = middlewares.PaginationMiddleware
 
 func (h *Handler) RegisterRoutes(router *http.ServeMux) {
-	router.HandleFunc(utils.RoutePath("GET", "/products/{id}"), Authenticate(AuthorizeAdmin(h.GetProductById)))
+	router.HandleFunc(utils.RoutePath("GET", "/products/{id}"), h.GetProductById)
 	router.HandleFunc(utils.RoutePath("GET", "/products"),Pagination(h.GetAllProducts))
 	router.HandleFunc(utils.RoutePath("POST", "/products"), Authenticate(AuthorizeAdmin(h.CreateProduct)))
 	router.HandleFunc(utils.RoutePath("PUT", "/products/{id}"), Authenticate(AuthorizeAdmin(h.UpdateProduct)))
@@ -47,7 +47,7 @@ func (h *Handler) GetProductById(w http.ResponseWriter, r *http.Request) {
 
 	productRows, err := h.store.GetProductById(*Id)
 	if err != nil || len(productRows) == 0 {
-		utils.WriteError(w, http.StatusBadRequest, errors.NewResourceWasNotFoundError("product", *Id))
+		utils.WriteError(w, http.StatusBadRequest, invalidProdIdErr(*Id))
 		return
 	}
 	product := convertRowsToProduct(productRows)
@@ -93,7 +93,6 @@ func (h *Handler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 		return payload, nil
 	})
 
-	
 	if err != nil {
 		utils.WriteError(w, http.StatusBadRequest, err)
 		return
@@ -104,6 +103,7 @@ func (h *Handler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 		utils.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
+	defer file.Close()
 
 	imgsHandler := utils.NewImagesHandler()
 	resp, err := imgsHandler.UploadOne(&file, fileHeader, types.ProductsFolder, r.Context())

@@ -11,10 +11,10 @@ import (
 
 const CookieMaxAge = 1209600 // 14 days
 
-var cookiesStore = sessions.NewCookieStore([]byte(config.Envs.JWT_SECRET))
+var CookiesStore = sessions.NewCookieStore([]byte(config.Envs.JWT_SECRET))
 
 func GetCookie(r *http.Request) (*sessions.Session, error) {
-	session, err := cookiesStore.Get(r, "session_token")
+	session, err := CookiesStore.Get(r, "session_token")
 	if err != nil {
 		return nil, err
 	}
@@ -23,7 +23,7 @@ func GetCookie(r *http.Request) (*sessions.Session, error) {
 }
 
 func SetCookie(w http.ResponseWriter, r *http.Request, user *models.User, token string) (*sessions.Session, error) {
-	session, err := cookiesStore.New(r, "session_token")
+	session, err := CookiesStore.New(r, "session_token")
 	if err != nil {
 		return nil, err
 	}
@@ -39,7 +39,7 @@ func SetCookie(w http.ResponseWriter, r *http.Request, user *models.User, token 
 	session.Values["userId"] = user.ID
 	session.Values["email"] = user.Email
 	session.Values["token"] = token
-
+	
 	err = session.Save(r, w)
 	if err != nil {
 		return nil, err

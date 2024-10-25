@@ -14,7 +14,7 @@ type CreateProduct struct {
 	Name        string         `json:"name" validate:"required,max=32,min=3,alphanumWithSpaces"`
 	Quantity    uint           `json:"quantity" validate:"required,max=10000,min=0"`
 	Image       multipart.File `json:"image"`
-	Description string        `json:"description" validate:"omitempty,max=256,min=4,alphanumWithSpaces"`
+	Description string        `json:"description" validate:"omitempty,max=256,min=4"`
 	CategoryID  uint           `json:"categoryId" validate:"required,min=1"`
 	Price       float64        `json:"price" validate:"gt=0.0"`
 }
@@ -23,7 +23,7 @@ type CreateProduct struct {
 type UpdateProduct struct {
 	Name        string         `json:"name" validate:"omitempty,max=32,min=3,alphanumWithSpaces"`
 	Quantity    uint           `json:"quantity" validate:"omitempty,min=0,max=10000"`
-	Description string        `json:"description" validate:"omitempty,max=256,min=4,alphanumWithSpaces"`
+	Description string        `json:"description" validate:"omitempty,max=256,min=4"`
 	CategoryID  uint           `json:"categoryId" validate:"omitempty,min=1"`
 	Price       float64        `json:"price" validate:"omitempty,gt=0.0"`
 }
@@ -73,7 +73,6 @@ func (up *UpdateProduct) ToModel() *models.Product {
 	return nil
 }
 
-// ! Handle url in the model with image
 func (up *UpdateProduct) ToModelWithImage(url string) *models.Product {
 	if up != nil {
 		return &models.Product{

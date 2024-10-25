@@ -25,5 +25,4 @@ var (
 	AddressCreateCols = []string{"FullName","Country","StreetAddress","City","ZipCode","State","UserID"}
 	AddressUpdateCols = []string{"FullName","Country","StreetAddress","City","ZipCode","State"}
 )
-
  

@@ -4,13 +4,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	appErrs "main.go/errors"
 	"mime/multipart"
 	"net/http"
 	"strconv"
 	"strings"
 
+	appErrs "main.go/errors"
+
 	"github.com/go-playground/validator/v10"
+	"github.com/go-sql-driver/mysql"
 	"github.com/golang-jwt/jwt/v5"
 	"main.go/config"
 	"main.go/constants"
@@ -78,38 +80,39 @@ func WriteJSON(w http.ResponseWriter, status int, v any) error {
 	return json.NewEncoder(w).Encode(v)
 }
 
-// ! we dont need to capture stack trace for every failing request
 func WriteError(w http.ResponseWriter, status int, err error) {
-	stackTrace := logCaptureStackTrace()
-	returnedErr := err.Error()
-
 	errObj := make(map[string]any, 0)
 	var UnmarshalTypeErr *json.UnmarshalTypeError
-	var validationErrMsg validator.ValidationErrors
+	var mySqlError *mysql.MySQLError
 
 	if config.Envs.Env == "production" {
 		if status >= 500 {
-			returnedErr = appErrs.ErrGenericMessage.Error()
 			errObj["error"] = appErrs.ErrGenericMessage.Error()
 			errObj["statusCode"] = status
+			logCaptureStackTrace()
 
-		} else if errors.As(err, &validationErrMsg) {
+		} else if errors.As(err, &validator.ValidationErrors{}) {
 			errObj["error"] = validationErrMsgHandler(err.(validator.ValidationErrors))
 			errObj["statusCode"] = status
+
+		} else if errors.As(err, &mySqlError) {
+			errObj["error"] = appErrs.ErrGenericMessage.Error()
+			errObj["statusCode"] = 500
+			logCaptureStackTrace()
 
 		} else if errors.As(err, &UnmarshalTypeErr) {
 			errObj["error"] = unmarshalErrMsgHandler(err.(*json.UnmarshalTypeError))
 			errObj["statusCode"] = 400
 
-		} else {
-			errObj["error"] = returnedErr
+		}  else {
+			errObj["error"] = err.Error()
 			errObj["statusCode"] = status
 		}
 
 	} else {
-		errObj["error"] = returnedErr
+		errObj["error"] = err.Error()
 		errObj["statusCode"] = status
-		errObj["stackTrace"] = stackTrace
+		errObj["stackTrace"] = logCaptureStackTrace()
 	}
 
 	WriteJSON(w, status, errObj)

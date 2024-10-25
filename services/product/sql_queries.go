@@ -58,7 +58,7 @@ LEFT JOIN (SELECT
  LIMIT 9) reviews ON reviews.product_id = products.id
  LEFT JOIN users ON reviews.user_id = users.id
  `
-var groupByGetProductById = `products.id, images.id, review_id, users.id`
+var groupByGetProductById = `products.id, images.id, review_id, users.id, avg_rating.avg_rating`
 
 func convertRowsToProduct(rows []types.RowGetProductById) *types.RespGetOneProductShape{
 	var product types.RespGetOneProductShape

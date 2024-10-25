@@ -17,7 +17,7 @@ func InitDB() *gorm.DB {
 	config := &gorm.Config{}
 
 	// adding queries logger
-	if Envs.Env != "production" {
+	if Envs.Env == "development" {
 		config.Logger = SQLLogger
 	}
 	dsnNoDB := Envs.DSN_NO_DB

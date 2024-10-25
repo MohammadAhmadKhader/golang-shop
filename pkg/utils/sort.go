@@ -43,7 +43,6 @@ func GetSortQArr(r *http.Request, whiteListedParams map[string]any) string {
 		return defaultSort
 	}
 	
-
 	sorts := make([]string, 0)
 	sortedFields := make([]string, 0)
 	for _, singleSort := range sortsArr {

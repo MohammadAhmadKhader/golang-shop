@@ -31,6 +31,7 @@ func (prodStore *Store) GetProductById(Id uint) ([]types.RowGetProductById, erro
 	var qRows []types.RowGetProductById
 	err := prodStore.DB.Model(&models.Product{}).Select(getProductByIdQ, Id).
 	Joins(getProductByIdJoins).Where("products.id", Id).Group(groupByGetProductById).Scan(&qRows).Error
+	
 	if err != nil {
 		return nil, fmt.Errorf(notFoundMsg, Id)
 	}

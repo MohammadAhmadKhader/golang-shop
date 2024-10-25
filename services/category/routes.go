@@ -31,7 +31,7 @@ func invalidCategoryIdErr(id uint) error {
 
 func (h *Handler) RegisterRoutes(router *http.ServeMux) {
 	router.HandleFunc(utils.RoutePath("GET","/categories"), Pagination(h.GetAllCategories))
-	router.HandleFunc(utils.RoutePath("GET","/categories/{id}"), Authenticate(AuthorizeAdmin(h.GetCategoryById)))
+	router.HandleFunc(utils.RoutePath("GET","/categories/{id}"), h.GetCategoryById)
 	router.HandleFunc(utils.RoutePath("POST","/categories"), Authenticate(AuthorizeAdmin(h.CreateCategory)))
 	router.HandleFunc(utils.RoutePath("PUT","/categories/{id}"), Authenticate(AuthorizeAdmin(h.UpdateCategory)))
 }

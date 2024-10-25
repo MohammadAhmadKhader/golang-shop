@@ -23,7 +23,7 @@ type ResourceWasNotFoundError struct {
 	NotFoundMessage string
 	ID              uint
 }
-
+// TODO: Must be changed, this is invalid
 func (e *ResourceWasNotFoundError) Error() string {
 	return fmt.Sprintf(e.NotFoundMessage, e.ID)
 }
