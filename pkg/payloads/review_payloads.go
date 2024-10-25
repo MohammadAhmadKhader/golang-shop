@@ -9,12 +9,12 @@ import (
 
 type CreateReview struct {
 	Rate    uint8  `json:"rate" validate:"required,oneof=1 2 3 4 5"`
-	Comment string `json:"comment" validate:"required,min=2,max=256,alphanumWithSpaces"`
+	Comment string `json:"comment" validate:"required,min=2,max=256"`
 }
 
 type UpdateReview struct {
 	Rate    uint8  `json:"rate,omitempty" validate:"omitempty,oneof=1 2 3 4 5"`
-	Comment string `json:"comment,omitempty" validate:"min=2,max=256,alphanumWithSpaces,omitempty"`
+	Comment string `json:"comment,omitempty" validate:"min=2,max=256,omitempty"`
 }
 
 func (ur *UpdateReview) IsEmpty() bool {

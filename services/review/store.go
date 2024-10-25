@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	notFoundMsg = "review with id: '%v' is not found"
+	notFoundMsg = "review with id: '%v' was not found"
 )
 
 type Store struct {

@@ -275,7 +275,7 @@ func (g *GenericRepository[TModel]) FindThenDeleteWithAuth(id uint, notFoundMsg 
 		return nil, appErrors.ErrForbidden
 	}
 
-	err = g.DB.Delete(model, id).Error
+	err = g.DB.Delete(&model, id).Error
 	if err != nil {
 		return nil, err
 	}

@@ -20,17 +20,17 @@ func NewInvalidIDError(resource string, id uint) error {
 
 // this error its message must contain a placeholder for its id
 type ResourceWasNotFoundError struct {
-	NotFoundMessage string
+	NotFoundErrMessage string
 	ID              uint
 }
-// TODO: Must be changed, this is invalid
+
 func (e *ResourceWasNotFoundError) Error() string {
-	return fmt.Sprintf(e.NotFoundMessage, e.ID)
+	return fmt.Sprintf(e.NotFoundErrMessage, e.ID)
 }
 
 func NewResourceWasNotFoundError(resource string, id uint) error {
 	return &ResourceWasNotFoundError{
-		NotFoundMessage: resource,
+		NotFoundErrMessage: resource,
 		ID:              id,
 	}
 }

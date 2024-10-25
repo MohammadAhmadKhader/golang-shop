@@ -95,7 +95,6 @@ func (h *Handler) AddReview(w http.ResponseWriter, r *http.Request) {
 	}
 
 	review := crPayload.TrimStrs().ToModel(*userId, product.ID)
-
 	newRev, err := h.store.CreateReview(review)
 	if err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, err)
@@ -134,6 +133,11 @@ func (h *Handler) EditReview(w http.ResponseWriter, r *http.Request) {
 			utils.WriteError(w, http.StatusForbidden, err)
 			return
 		}
+		var notFoundErr *appErrors.ResourceWasNotFoundError
+		if errors.As(err, &notFoundErr){
+			utils.WriteError(w, http.StatusBadRequest, err)
+			return
+		}
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
@@ -147,7 +151,7 @@ func (h *Handler) DeleteReview(w http.ResponseWriter, r *http.Request) {
 		utils.WriteError(w, http.StatusBadRequest, invalidRevIdErr(*Id))
 		return
 	}
-	
+
 	userId, err := utils.GetUserIdCtx(r)
 	if err != nil {
 		utils.WriteError(w, http.StatusBadRequest, appErrors.ErrFailedToRetrieveToken)

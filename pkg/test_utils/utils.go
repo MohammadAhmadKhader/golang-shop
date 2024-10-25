@@ -12,6 +12,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/brianvoe/gofakeit/v6"
 	"github.com/gorilla/sessions"
 	"github.com/stretchr/testify/assert"
 	"main.go/constants"
@@ -36,6 +37,20 @@ func GenSuperAdminCookie(w http.ResponseWriter, r *http.Request) error {
 	SetCookieForTesting(w, r, user, token)
 	return nil
 }
+
+func GenCookieByUserId(w http.ResponseWriter, r *http.Request, userId uint) error {
+	var user models.User
+	if err := database.DB.First(&user, userId).Error; err != nil {
+		return err
+	}
+	token, err := auth.CreateJWT(user, w, r)
+	if err != nil {
+		return err
+	}
+	SetCookieForTesting(w, r, &user, token)
+	return nil
+}
+
 
 // the difference between this and the one used in production, this uses "Get" method, the one for production uses "New" method
 //
@@ -174,4 +189,26 @@ func ExpectEmptyJSON(t *testing.T, rr *httptest.ResponseRecorder) {
 	}
 
 	assert.JSONEq(t, `{}`, string(responseData), "Expected an empty JSON object")
+}
+
+func CreateTestReview(Adjuster func(rev *models.Review) *models.Review) (*models.Review, error) {
+	var review models.Review
+	review.Comment = CapStrLen(gofakeit.Comment(), 256)
+	review.Rate = uint8(gofakeit.UintRange(1,5))
+	if Adjuster != nil {
+		Adjuster(&review)
+	}
+
+	err := database.DB.Model(models.Review{}).Create(&review).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return &review, nil
+}
+
+func DeleteResourceById[TModel any](id uint) error {
+	var model TModel
+	err := database.DB.Unscoped().Delete(&model,id).Error
+	return err
 }
