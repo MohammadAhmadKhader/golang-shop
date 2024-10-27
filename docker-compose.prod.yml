@@ -1,0 +1,11 @@
+version: '3'
+services:
+  golang-shop-app:
+    env_file:
+      - .env
+    environment:
+      - env=production
+    
+  db:
+    env_file:
+      - .env

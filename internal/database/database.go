@@ -54,6 +54,6 @@ func InitDB() *gorm.DB {
 	}
 
 	SeedData(DB)
-
+	
 	return DB
 }

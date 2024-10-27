@@ -1,0 +1,52 @@
+version: '3'
+services:
+  golang-shop-app:
+    image: mohammadkhader/golang-shop-image:latest
+    build: .
+    volumes:
+      - .:/app:ro
+    restart: on-failure
+    deploy:
+      replicas: 4
+      update_config:
+        parallelism: 2
+        delay: 5s
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+    depends_on:
+      - db
+    #depends_on:
+    #  db:
+    #    condition: service_healthy
+    #* was removed because does not work with docker-swarm       
+  
+  db:
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      #* this wont work with swarm, must pass secrets as external or type them hard coded here.
+    image: mysql
+    restart: always
+    ports:
+      - 3306:3306
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 3s
+      timeout: 2s
+      retries: 5
+   
+  web:
+    image: nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - db
+      - golang-shop-app
+
+volumes:
+  mysql_data:
