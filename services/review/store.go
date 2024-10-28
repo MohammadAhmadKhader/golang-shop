@@ -1,10 +1,10 @@
 package review
 
 import (
-
 	"gorm.io/gorm"
 	"main.go/constants"
 	"main.go/pkg/models"
+	"main.go/pkg/utils"
 	"main.go/services/generic"
 	"main.go/types"
 )
@@ -44,7 +44,8 @@ func (reviewStore *Store) GetAllReviews(page, limit int) ([]models.Review, int64
 }
 
 func (reviewStore *Store) UpdateReview(id,userId uint, updatePayload *models.Review,excluder types.Excluder) (*models.Review, error) {
-	uCols := excluder.Exclude(constants.CommentUpdateCols)
+	revColsCopy := utils.CopyCols(constants.CommentUpdateCols)
+	uCols := excluder.Exclude(revColsCopy)
 	review, err := reviewStore.Generic.FindThenUpdateWithAuth(id, updatePayload, uCols,notFoundMsg ,userId)
 	if err != nil {
 		return nil, err

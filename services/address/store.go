@@ -4,6 +4,7 @@ import (
 	"gorm.io/gorm"
 	"main.go/constants"
 	"main.go/pkg/models"
+	"main.go/pkg/utils"
 	"main.go/services/generic"
 	"main.go/types"
 )
@@ -52,7 +53,8 @@ func (addressStore *Store) CreateAddress(address *models.Address) (*models.Addre
 }
 
 func (addressStore *Store) UpdateAddress(id uint, address *models.Address, excluder types.Excluder) (*models.Address, error){
-	fields := excluder.Exclude(constants.AddressUpdateCols)
+	addressFieldsCopy := utils.CopyCols(constants.AddressUpdateCols)
+	fields := excluder.Exclude(addressFieldsCopy)
 	address, err := addressStore.Generic.UpdateAndReturn(id, address, fields)
 	if err != nil {
 		return nil, err

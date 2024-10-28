@@ -45,7 +45,8 @@ func (s *Store) UpdateMessage(id uint, changes models.Message, excluder types.Ex
 		return nil, err
 	}
 
-	fields := excluder.Exclude(selectedFields)
+	messageColsCopy := utils.CopyCols(selectedFields)
+	fields := excluder.Exclude(messageColsCopy)
 	err = s.DB.Model(&message).Select(fields).Updates(changes).Error
 	if err != nil {
 		return nil, err

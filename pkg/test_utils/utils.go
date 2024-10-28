@@ -3,6 +3,7 @@ package test_utils
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"mime/multipart"
@@ -10,9 +11,11 @@ import (
 	"net/http/httptest"
 	"os"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/brianvoe/gofakeit/v6"
+	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/sessions"
 	"github.com/stretchr/testify/assert"
 	"main.go/constants"
@@ -50,7 +53,6 @@ func GenCookieByUserId(w http.ResponseWriter, r *http.Request, userId uint) erro
 	SetCookieForTesting(w, r, &user, token)
 	return nil
 }
-
 
 // the difference between this and the one used in production, this uses "Get" method, the one for production uses "New" method
 //
@@ -194,7 +196,7 @@ func ExpectEmptyJSON(t *testing.T, rr *httptest.ResponseRecorder) {
 func CreateTestReview(Adjuster func(rev *models.Review) *models.Review) (*models.Review, error) {
 	var review models.Review
 	review.Comment = CapStrLen(gofakeit.Comment(), 256)
-	review.Rate = uint8(gofakeit.UintRange(1,5))
+	review.Rate = uint8(gofakeit.UintRange(1, 5))
 	if Adjuster != nil {
 		Adjuster(&review)
 	}
@@ -209,6 +211,37 @@ func CreateTestReview(Adjuster func(rev *models.Review) *models.Review) (*models
 
 func DeleteResourceById[TModel any](id uint) error {
 	var model TModel
-	err := database.DB.Unscoped().Delete(&model,id).Error
+	err := database.DB.Unscoped().Delete(&model, id).Error
 	return err
+}
+
+func GetErrorsCount(validatorErr validator.ValidationErrors) int {
+	return strings.Count(validatorErr.Error(), "Error:Field")
+}
+
+func ExpectedErrsCountMsg(expectedErrsCount int, receivedErrsCount int) string {
+	return fmt.Sprintf("Errors count are expected to be %v received %v", expectedErrsCount, receivedErrsCount)
+}
+
+func ValidateTrimming(t *testing.T, payload any) {
+	refVal := reflect.ValueOf(payload)
+	if refVal.Kind() != reflect.Struct {
+		t.Error("Expected struct at validate trimming")
+		return
+	}
+
+	for i := 0; i < refVal.NumField(); i++ {
+		field := refVal.Type().Field(i)
+
+		if field.Type.Kind() == reflect.String {
+			value := refVal.Field(i).String()
+
+			if len(value) > 0 {
+				if value[len(value) - 1] == ' ' || value[0] == ' ' {
+					t.Fatalf("Trimming was not processed successfully on struct type: '%v' with field: '%v' with value: '%v'", refVal.Type(), field.Name, value)
+					return
+				}
+			}
+		}
+	}
 }

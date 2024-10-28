@@ -104,7 +104,7 @@ func WriteError(w http.ResponseWriter, status int, err error) {
 			errObj["error"] = unmarshalErrMsgHandler(err.(*json.UnmarshalTypeError))
 			errObj["statusCode"] = 400
 
-		}  else {
+		} else {
 			errObj["error"] = err.Error()
 			errObj["statusCode"] = status
 		}
@@ -149,7 +149,7 @@ func ValidateAndParseFormData[TPayload any](r *http.Request, formValuesGetter fu
 	return payload, nil
 }
 
-func ValidateStruct[TPayload any](model TPayload) (error) {
+func ValidateStruct[TPayload any](model TPayload) error {
 	if err := Validate.Struct(model); err != nil {
 		return err
 	}
@@ -289,4 +289,10 @@ func GetFilesCount(r *http.Request, keyName string) (int, error) {
 		return 0, fmt.Errorf("failed to access files")
 	}
 	return len(files), nil
+}
+
+func CopyCols(selectedFields []string) []string {
+	colsCopy := make([]string, len(selectedFields))
+	copy(colsCopy, selectedFields)
+	return colsCopy
 }

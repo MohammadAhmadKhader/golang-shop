@@ -6,6 +6,7 @@ import (
 	"gorm.io/gorm"
 	"main.go/constants"
 	"main.go/pkg/models"
+	"main.go/pkg/utils"
 	"main.go/services/generic"
 	"main.go/services/image"
 	"main.go/types"
@@ -58,7 +59,8 @@ func (prodStore *Store) CreateProduct(product *models.Product) (*models.Product,
 }
 
 func (prodStore *Store) UpdateProduct(id uint, changes *models.Product, excluder types.Excluder) (*models.Product, error) {
-	fields := excluder.Exclude(constants.ProductCols)
+	prodColsCopy := utils.CopyCols(constants.ProductCols)
+	fields := excluder.Exclude(prodColsCopy)
 	product, errs := prodStore.Generic.FindThenUpdate(id, changes, fields, notFoundMsg)
 	if errs != nil {
 		return nil, errs

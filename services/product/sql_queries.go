@@ -164,10 +164,10 @@ func convertRowsToResp(rows []types.GetAllProductsRow) []types.RespGetAllProduct
 
 	}
 
-	var result []types.RespGetAllProductsShape
+	result := []types.RespGetAllProductsShape{}
 	for _, product := range productsSlice {
 		result = append(result, *product)
 	}
-
+	
 	return result
 }

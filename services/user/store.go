@@ -7,6 +7,7 @@ import (
 	"main.go/constants"
 	"main.go/pkg/models"
 	"main.go/pkg/payloads"
+	"main.go/pkg/utils"
 	"main.go/types"
 
 	"main.go/services/auth"
@@ -111,7 +112,8 @@ func (userStore *Store) UpdatePassword(newHashedPassword, email string) error {
 }
 
 func (userStore *Store) UpdateProfile(id uint, user *models.User, excluder types.Excluder) (*models.User, error) {
-	colsToUpdate := excluder.Exclude(constants.UserUpdateCols)
+	revColsCopy := utils.CopyCols(constants.UserUpdateCols)
+	colsToUpdate := excluder.Exclude(revColsCopy)
 	updatedUser, err := userStore.Generic.UpdateAndReturn(id, user, colsToUpdate)
 	if err != nil {
 		return nil, err
