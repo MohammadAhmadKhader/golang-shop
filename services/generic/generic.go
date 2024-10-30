@@ -50,7 +50,7 @@ func (g GenericRepository[TModel]) GetAll(page, limit int) ([]TModel, int64, []e
 	go func() {
 		defer wg.Done()
 		offset := utils.CalculateOffset(page, limit)
-		if err := g.DB.Find(&models).Order("created_at DESC").Offset(offset).Limit(limit).Error; err != nil {
+		if err := g.DB.Order("created_at DESC").Offset(offset).Limit(limit).Find(&models).Error; err != nil {
 			errors = append(errors, err)
 		}
 	}()

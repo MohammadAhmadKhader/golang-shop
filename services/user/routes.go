@@ -34,6 +34,7 @@ func (h *Handler) RegisterRoutes(router *http.ServeMux) {
 	router.HandleFunc(utils.RoutePath("GET", "/users"), Authenticate(h.GetUserByToken))
 	router.HandleFunc(utils.RoutePath("POST", "/users/login"), h.Login)
 	router.HandleFunc(utils.RoutePath("POST", "/users/sign-up"), h.SignUp)
+	router.HandleFunc(utils.RoutePath("POST", "/users/refresh-token"), Authenticate(h.RefreshToken))
 	router.HandleFunc(utils.RoutePath("PATCH", "/users/{id}/reset-password"), Authenticate(h.ResetPassword))
 	router.HandleFunc(utils.RoutePath("PUT", "/users/{id}/profile"), Authenticate(h.UpdateProfile))
 	router.HandleFunc(utils.RoutePath("POST", "/users/{id}/roles"), Authenticate(AuthorizeSuperAdmin(h.AssignUserRole)))
@@ -59,7 +60,8 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := auth.CreateJWT(*user, w, r)
+	// generate and set the cookie
+	_, _, err = auth.GenerateAndSetTokens(*user, w, r)
 	if err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
@@ -69,8 +71,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 
 	utils.WriteJSON(w, http.StatusCreated, map[string]any{
 		"user":  user,
-		"token": token,
-		"otp": otp.Key,
+		"otp":   otp.Key,
 	})
 }
 
@@ -93,15 +94,17 @@ func (h *Handler) SignUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := auth.CreateJWT(*user, w, r)
+	_, _, err = auth.GenerateAndSetTokens(*user, w, r)
 	if err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, appErrors.ErrGenericMessage)
 		return
 	}
 
+	otp := websocket.GlobalManager.Otps.NewOTP()
+
 	utils.WriteJSON(w, http.StatusCreated, map[string]any{
-		"user":  user,
-		"token": token,
+		"otp":otp.Key,
+		"user":user,
 	})
 }
 
@@ -147,15 +150,13 @@ func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newToken, err := auth.CreateJWT(*user, w, r)
+	_, _, err = auth.GenerateAndSetTokens(*user, w, r)
 	if err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	utils.WriteJSON(w, http.StatusAccepted, map[string]any{
-		"token": newToken,
-	})
+	utils.WriteJSON(w, http.StatusAccepted, map[string]any{})
 }
 
 func (h *Handler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
@@ -216,9 +217,9 @@ func (h *Handler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) AssignUserRole(w http.ResponseWriter, r *http.Request) {
-	Id, err := utils.GetValidateId(r, constants.IdUrlPathKey)
+	Id, receivedStr,err := utils.GetValidateId(r, constants.IdUrlPathKey)
 	if err != nil {
-		utils.WriteError(w, http.StatusBadRequest, appErrors.NewInvalidIDError("user", *Id))
+		utils.WriteError(w, http.StatusBadRequest, appErrors.NewInvalidIDError("user", receivedStr))
 		return
 	}
 
@@ -242,15 +243,15 @@ func (h *Handler) AssignUserRole(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) RemoveUserRole(w http.ResponseWriter, r *http.Request) {
-	Id, err := utils.GetValidateId(r, constants.IdUrlPathKey)
+	Id, receivedStr,err := utils.GetValidateId(r, constants.IdUrlPathKey)
 	if err != nil {
-		utils.WriteError(w, http.StatusBadRequest, appErrors.NewInvalidIDError("user", *Id))
+		utils.WriteError(w, http.StatusBadRequest, appErrors.NewInvalidIDError("user", receivedStr))
 		return
 	}
 
-	roleId, err := utils.GetValidateId(r, "roleId")
+	roleId, receivedStr,err := utils.GetValidateId(r, "roleId")
 	if err != nil {
-		utils.WriteError(w, http.StatusBadRequest, err)
+		utils.WriteError(w, http.StatusBadRequest, appErrors.NewInvalidIDError("role", receivedStr))
 		return
 	}
 
@@ -269,11 +270,50 @@ func (h *Handler) GetUserByToken(w http.ResponseWriter, r *http.Request) {
 		utils.WriteError(w, http.StatusInternalServerError, appErrors.ErrGenericMessage)
 		return
 	}
-	
+
 	otp := websocket.GlobalManager.Otps.NewOTP()
 
 	utils.WriteJSON(w, http.StatusOK, map[string]any{
-		"user":user,
-		"otp":otp.Key,
+		"user": user,
+		"otp":  otp.Key,
 	})
+}
+
+func (h *Handler) RefreshToken(w http.ResponseWriter, r *http.Request) {
+	user, err := utils.GetUserCtx(r)
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, appErrors.ErrGenericMessage)
+		return
+	}
+	refreshToken, err := auth.GetRefreshToken(r)
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, appErrors.ErrGenericMessage)
+		return
+	}
+
+	// here user must sign in again because refresh token is invalid/expired
+	validatedRefToken, err := auth.ValidateToken(refreshToken)
+	if err != nil {
+		auth.Unauthorized(w)
+		return
+	}
+
+	userId, _,err := auth.GetUserIdFromJWT(validatedRefToken)
+	if err != nil {
+		auth.Unauthorized(w)
+		return
+	}
+	// checking user id in refresh token and access token, both must be equal
+	if *userId != user.ID {
+		auth.DenyPermission(w)
+		return
+	}
+
+	_, err = auth.GenerateAccessTokenAndSetTokens(*refreshToken, user, w, r)
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, appErrors.ErrGenericMessage)
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusOK, map[string]any{})
 }

@@ -22,7 +22,7 @@ func NewHandler(store Store) *Handler {
 }
 
 var addressId = "addressId"
-func invalidAddressIdErr(id uint) error {
+func invalidAddressIdErr(id string) error {
 	return errors.NewInvalidIDError("address", id)
 }
 var Authenticate = middlewares.Authenticate
@@ -44,9 +44,9 @@ func (h *Handler) GetAddressById(w http.ResponseWriter, r *http.Request) {
 		utils.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
-	addressId, err := utils.GetValidateId(r, addressId)
+	addressId, receivedStr, err := utils.GetValidateId(r, addressId)
 	if err != nil {
-		utils.WriteError(w, http.StatusBadRequest, invalidAddressIdErr(*addressId))
+		utils.WriteError(w, http.StatusBadRequest, invalidAddressIdErr(receivedStr))
 		return
 	}
 
@@ -115,9 +115,9 @@ func (h *Handler) UpdateAddress(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	addressId, err := utils.GetValidateId(r, "addressId")
+	addressId, receivedStr, err := utils.GetValidateId(r, "addressId")
 	if err != nil {
-		utils.WriteError(w, http.StatusBadRequest, invalidAddressIdErr(*addressId))
+		utils.WriteError(w, http.StatusBadRequest, invalidAddressIdErr(receivedStr))
 		return
 	}
 	count, err := h.store.GetUndeletedAddressesCount(*userId)
@@ -146,9 +146,9 @@ func (h *Handler) DeleteAddress(w http.ResponseWriter, r *http.Request) {
 		utils.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
-	addressId, err := utils.GetValidateId(r, addressId)
+	addressId, receivedStr, err := utils.GetValidateId(r, addressId)
 	if err != nil {
-		utils.WriteError(w, http.StatusBadRequest, invalidAddressIdErr(*addressId))
+		utils.WriteError(w, http.StatusBadRequest, invalidAddressIdErr(receivedStr))
 		return
 	}
 

@@ -23,7 +23,7 @@ func NewHandler(store Store) *Handler {
 
 var itemId = "itemId"
 var Authenticate = middlewares.Authenticate
-func invalidCartItemIdErr(id uint) error {
+func invalidCartItemIdErr(id string) error {
 	return errors.NewInvalidIDError("cart item", id)
 }
 
@@ -82,9 +82,9 @@ func (h *Handler) ChangeCartItemQty(w http.ResponseWriter, r *http.Request) {
 		utils.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
-	cartItemId, err := utils.GetValidateId(r, itemId)
+	cartItemId, receivedStr, err := utils.GetValidateId(r, itemId)
 	if err != nil {
-		utils.WriteError(w, http.StatusBadRequest, invalidCartItemIdErr(*cartItemId))
+		utils.WriteError(w, http.StatusBadRequest, invalidCartItemIdErr(receivedStr))
 		return
 	}
 
@@ -118,9 +118,9 @@ func (h *Handler) DeleteCartItem(w http.ResponseWriter, r *http.Request) {
 		auth.Unauthorized(w)
 		return
 	}
-	cartItemId, err := utils.GetValidateId(r, itemId)
+	cartItemId, receivedStr,err := utils.GetValidateId(r, itemId)
 	if err != nil {
-		utils.WriteError(w, http.StatusBadRequest, invalidCartItemIdErr(*cartItemId))
+		utils.WriteError(w, http.StatusBadRequest, invalidCartItemIdErr(receivedStr))
 		return
 	}
 

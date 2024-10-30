@@ -53,7 +53,7 @@ type UserIdGetter interface {
 func AuthorizeUser[TModel UserIdGetter](param, idIsRequiredErrMsg, notFoundErr string, modelGetter func(id uint) (TModel,error)) func(next http.HandlerFunc) http.HandlerFunc {
 	return func(next http.HandlerFunc) http.HandlerFunc {
 		return http.HandlerFunc(func (w http.ResponseWriter, r *http.Request)  {
-			resourceId, err := utils.GetValidateId(r, param)
+			resourceId, _ ,err := utils.GetValidateId(r, param)
 			if err != nil {
 				utils.WriteError(w, http.StatusBadRequest, errors.New(idIsRequiredErrMsg))
 				return

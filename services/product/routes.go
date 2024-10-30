@@ -23,7 +23,7 @@ func NewHandler(store Store) *Handler {
 	}
 }
 
-func invalidProdIdErr(id uint) error {
+func invalidProdIdErr(id string) error {
 	return errors.NewInvalidIDError("product", id)
 }
 
@@ -39,15 +39,15 @@ func (h *Handler) RegisterRoutes(router *http.ServeMux) {
 }
 
 func (h *Handler) GetProductById(w http.ResponseWriter, r *http.Request) {
-	Id, err := utils.GetValidateId(r, constants.IdUrlPathKey)
+	Id, receivedStr, err := utils.GetValidateId(r, constants.IdUrlPathKey)
 	if err != nil {
-		utils.WriteError(w, http.StatusBadRequest, invalidProdIdErr(*Id))
+		utils.WriteError(w, http.StatusBadRequest, invalidProdIdErr(receivedStr))
 		return
 	}
 
 	productRows, err := h.store.GetProductById(*Id)
 	if err != nil || len(productRows) == 0 {
-		utils.WriteError(w, http.StatusBadRequest, invalidProdIdErr(*Id))
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("product with id: '%v' was not found", *Id))
 		return
 	}
 	product := convertRowsToProduct(productRows)
@@ -125,9 +125,9 @@ func (h *Handler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
-	Id, err := utils.GetValidateId(r, constants.IdUrlPathKey)
+	Id, receivedStr,err := utils.GetValidateId(r, constants.IdUrlPathKey)
 	if err != nil {
-		utils.WriteError(w, http.StatusBadRequest, invalidProdIdErr(*Id))
+		utils.WriteError(w, http.StatusBadRequest, invalidProdIdErr(receivedStr))
 		return
 	}
 

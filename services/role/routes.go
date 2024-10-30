@@ -25,7 +25,7 @@ var Authenticate = middlewares.Authenticate
 var AuthorizeSuperAdmin = middlewares.AuthorizeSuperAdmin
 var Pagination = middlewares.PaginationMiddleware
 
-func invalidRoleIdErr(id uint) error {
+func invalidRoleIdErr(id string) error {
 	return errors.NewInvalidIDError("role", id)
 }
 
@@ -78,9 +78,9 @@ func (h *Handler) UpdateRole(w http.ResponseWriter, r *http.Request) {
 		utils.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
-	Id, err := utils.GetValidateId(r, constants.IdUrlPathKey)
+	Id, receivedStr,err := utils.GetValidateId(r, constants.IdUrlPathKey)
 	if err != nil {
-		utils.WriteError(w, http.StatusBadRequest, invalidRoleIdErr(*Id))
+		utils.WriteError(w, http.StatusBadRequest, invalidRoleIdErr(receivedStr))
 		return
 	}
 
@@ -96,9 +96,9 @@ func (h *Handler) UpdateRole(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) DeleteRole(w http.ResponseWriter, r *http.Request) {
-	Id, err := utils.GetValidateId(r, constants.IdUrlPathKey)
+	Id, receivedStr,err := utils.GetValidateId(r, constants.IdUrlPathKey)
 	if err != nil {
-		utils.WriteError(w, http.StatusBadRequest, invalidRoleIdErr(*Id))
+		utils.WriteError(w, http.StatusBadRequest, invalidRoleIdErr(receivedStr))
 		return
 	}
 	

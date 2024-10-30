@@ -40,7 +40,7 @@ var ModelNameMapper = map[string]string{
 	"reviews":"review",
 }
 
-func invalidModelIdErr(modelName string,id uint) error {
+func invalidModelIdErr(modelName string,id string) error {
 	return errors.NewInvalidIDError(ModelNameMapper[modelName], id)
 }
 var Pagination = middlewares.PaginationMiddleware
@@ -73,9 +73,9 @@ func (h *Handler[TModel]) RegisterRoutesGeneric(router *http.ServeMux, modelName
 
 func (h *Handler[TModel]) GenerateSoftDeleteRoute(modelName string) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		Id, err := utils.GetValidateId(r, constants.IdUrlPathKey)
+		Id, receivedStr, err := utils.GetValidateId(r, constants.IdUrlPathKey)
 		if err != nil {
-			utils.WriteError(w, http.StatusBadRequest , invalidModelIdErr(modelName ,*Id))
+			utils.WriteError(w, http.StatusBadRequest , invalidModelIdErr(modelName ,receivedStr))
 			return
 		}
 
@@ -93,9 +93,9 @@ func (h *Handler[TModel]) GenerateSoftDeleteRoute(modelName string) func(w http.
 
 func (h *Handler[TModel]) GenerateRestoreRoute(modelName string) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		Id, err := utils.GetValidateId(r, constants.IdUrlPathKey)
+		Id, receivedStr, err := utils.GetValidateId(r, constants.IdUrlPathKey)
 		if err != nil {
-			utils.WriteJSON(w, http.StatusBadRequest ,  invalidModelIdErr(modelName ,*Id))
+			utils.WriteJSON(w, http.StatusBadRequest ,  invalidModelIdErr(modelName ,receivedStr))
 			return
 		}
 
@@ -116,9 +116,9 @@ func (h *Handler[TModel]) GenerateRestoreRoute(modelName string) func(w http.Res
 
 func (h *Handler[TModel]) GenerateHardDeleteRoute(modelName string) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		Id, err := utils.GetValidateId(r, constants.IdUrlPathKey)
+		Id, receivedStr, err := utils.GetValidateId(r, constants.IdUrlPathKey)
 		if err != nil {
-			utils.WriteJSON(w, http.StatusBadRequest , invalidModelIdErr(modelName ,*Id))
+			utils.WriteJSON(w, http.StatusBadRequest , invalidModelIdErr(modelName ,receivedStr))
 			return
 		}
 

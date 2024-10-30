@@ -31,9 +31,9 @@ func (h *Handler) RegisterRoutes(router *http.ServeMux) {
 
 
 func (h *Handler) GetUserMessages(w http.ResponseWriter, r *http.Request) {
-	userId, err := utils.GetValidateId(r, "userId")
+	userId, receivedStr,err := utils.GetValidateId(r, "userId")
 	if err != nil {
-		utils.WriteError(w, http.StatusBadRequest, errors.NewInvalidIDError("user id", *userId))
+		utils.WriteError(w, http.StatusBadRequest, errors.NewInvalidIDError("user id", receivedStr))
 		return
 	}
 	

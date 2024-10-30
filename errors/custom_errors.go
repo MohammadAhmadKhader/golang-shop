@@ -4,17 +4,17 @@ import "fmt"
 
 type InvalidIdError struct {
 	Resource string
-	ID       uint
+	ID       string
 }
 
 func (e *InvalidIdError) Error() string {
-	return fmt.Sprintf("invalid %s id received '%d' ", e.Resource, e.ID)
+	return fmt.Sprintf("invalid %s id received '%s' ", e.Resource, e.ID)
 }
 
-func NewInvalidIDError(resource string, id uint) error {
+func NewInvalidIDError(resource, receivedStr string) error {
 	return &InvalidIdError{
 		Resource: resource,
-		ID:       id,
+		ID:       receivedStr,
 	}
 }
 

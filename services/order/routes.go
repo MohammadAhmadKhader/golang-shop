@@ -24,7 +24,7 @@ func NewHandler(store Store) *Handler {
 	}
 }
 
-func invalidOrderIdErr(id uint) error {
+func invalidOrderIdErr(id string) error {
 	return errors.NewInvalidIDError("order", id)
 }
 
@@ -40,9 +40,9 @@ func (h *Handler) RegisterRoutes(router *http.ServeMux) {
 }
 
 func (h *Handler) GetOrderById(w http.ResponseWriter, r *http.Request) {
-	Id, err := utils.GetValidateId(r, constants.IdUrlPathKey)
+	Id, receivedStr,err := utils.GetValidateId(r, constants.IdUrlPathKey)
 	if err != nil {
-		utils.WriteError(w, http.StatusBadRequest, invalidOrderIdErr(*Id))
+		utils.WriteError(w, http.StatusBadRequest, invalidOrderIdErr(receivedStr))
 		return
 	}
 
@@ -152,9 +152,9 @@ func (h *Handler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) UpdateOrderStatusById(w http.ResponseWriter, r *http.Request) {
-	Id, err := utils.GetValidateId(r, constants.IdUrlPathKey)
+	Id, receivedStr,err := utils.GetValidateId(r, constants.IdUrlPathKey)
 	if err != nil {
-		utils.WriteError(w, http.StatusBadRequest, invalidOrderIdErr(*Id))
+		utils.WriteError(w, http.StatusBadRequest, invalidOrderIdErr(receivedStr))
 		return
 	}
 
@@ -175,9 +175,9 @@ func (h *Handler) UpdateOrderStatusById(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h *Handler) CancelOrderById(w http.ResponseWriter, r *http.Request) {
-	Id, err := utils.GetValidateId(r, constants.IdUrlPathKey)
+	Id, receivedStr,err := utils.GetValidateId(r, constants.IdUrlPathKey)
 	if err != nil {
-		utils.WriteError(w, http.StatusBadRequest, invalidOrderIdErr(*Id))
+		utils.WriteError(w, http.StatusBadRequest, invalidOrderIdErr(receivedStr))
 		return
 	}
 	userId, err := utils.GetUserIdCtx(r)

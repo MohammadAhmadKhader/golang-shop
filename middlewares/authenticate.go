@@ -13,7 +13,7 @@ var userLookup = NewUserLookup()
 
 func Authenticate(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		token, err := auth.GetToken(r)
+		token, err := auth.GetAccessToken(r)
 		if err != nil {
 			auth.Unauthorized(w)
 			return
@@ -50,7 +50,7 @@ func Authenticate(next http.HandlerFunc) http.HandlerFunc {
 // it skips the authentication if no token found, this meant to be used with websocket handler to allow public clients and non public clients.
 func AuthenticateIfCookieExist(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		token, err := auth.GetToken(r)
+		token, err := auth.GetAccessToken(r)
 		if err != nil {
 			next.ServeHTTP(w, r)
 			return

@@ -22,7 +22,7 @@ func GetCookie(r *http.Request) (*sessions.Session, error) {
 	return session, nil
 }
 
-func SetCookie(w http.ResponseWriter, r *http.Request, user *models.User, token string) (*sessions.Session, error) {
+func SetCookie(w http.ResponseWriter, r *http.Request, user *models.User, accessToken, refreshToken string) (*sessions.Session, error) {
 	session, err := CookiesStore.New(r, "session_token")
 	if err != nil {
 		return nil, err
@@ -38,7 +38,8 @@ func SetCookie(w http.ResponseWriter, r *http.Request, user *models.User, token 
 
 	session.Values["userId"] = user.ID
 	session.Values["email"] = user.Email
-	session.Values["token"] = token
+	session.Values["access_token"] = accessToken
+	session.Values["refresh_token"] = refreshToken
 	
 	err = session.Save(r, w)
 	if err != nil {

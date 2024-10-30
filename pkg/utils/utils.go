@@ -224,19 +224,19 @@ func GetEmailFromToken(r *http.Request) (*string, error) {
 	return &email, nil
 }
 
-func GetValidateId(r *http.Request, pathKey string) (*uint, error) {
+func GetValidateId(r *http.Request, pathKey string) (id *uint, receivedStr string, err error) {
 	IdAsString := r.PathValue(pathKey)
 	var uintId uint
 	Id, err := strconv.ParseUint(IdAsString, 10, 64)
 	if err != nil {
-		return &uintId, err
+		return &uintId, IdAsString, err
 	}
 	if Id == 0 {
-		return &uintId, fmt.Errorf("id can not be 0")
+		return &uintId, "",fmt.Errorf("id can not be 0")
 	}
 	uintId = uint(Id)
 
-	return &uintId, nil
+	return &uintId, "",nil
 }
 
 // TODO: this used to prettify middlewares and make them more readable

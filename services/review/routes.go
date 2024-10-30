@@ -28,7 +28,7 @@ const (
 	reviewId = "reviewId"
 )
 
-func invalidRevIdErr(id uint) error {
+func invalidRevIdErr(id string) error {
 	return appErrors.NewInvalidIDError("review", id)
 }
 
@@ -83,14 +83,14 @@ func (h *Handler) AddReview(w http.ResponseWriter, r *http.Request) {
 		utils.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
-	productId, err := utils.GetValidateId(r, constants.IdUrlPathKey)
+	productId, receivedStr ,err := utils.GetValidateId(r, constants.IdUrlPathKey)
 	if err != nil {
-		utils.WriteError(w, http.StatusBadRequest, appErrors.NewInvalidIDError("product",*productId))
+		utils.WriteError(w, http.StatusBadRequest, appErrors.NewInvalidIDError("product",receivedStr))
 		return
 	}
 	product, err := h.store.GetProductById(*productId)
 	if err != nil {
-		utils.WriteError(w, http.StatusBadRequest, appErrors.NewResourceWasNotFoundError("product", *productId))
+		utils.WriteError(w, http.StatusBadRequest, appErrors.NewResourceWasNotFoundError("product with id: '%v' was not found", *productId))
 		return
 	}
 
@@ -110,9 +110,9 @@ func (h *Handler) EditReview(w http.ResponseWriter, r *http.Request) {
 		utils.WriteError(w, http.StatusBadRequest, appErrors.ErrFailedToRetrieveToken)
 		return
 	}
-	Id, err := utils.GetValidateId(r, reviewId)
+	Id, receivedStr,err := utils.GetValidateId(r, reviewId)
 	if err != nil {
-		utils.WriteError(w, http.StatusBadRequest, invalidRevIdErr(*Id))
+		utils.WriteError(w, http.StatusBadRequest, invalidRevIdErr(receivedStr))
 		return
 	}
 
@@ -146,9 +146,9 @@ func (h *Handler) EditReview(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) DeleteReview(w http.ResponseWriter, r *http.Request) {
-	Id, err := utils.GetValidateId(r, reviewId)
+	Id, receivedStr,err := utils.GetValidateId(r, reviewId)
 	if err != nil {
-		utils.WriteError(w, http.StatusBadRequest, invalidRevIdErr(*Id))
+		utils.WriteError(w, http.StatusBadRequest, invalidRevIdErr(receivedStr))
 		return
 	}
 

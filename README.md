@@ -138,3 +138,4 @@ There was no need to add flags to it, as it only needed to be run once.
 - Separate the Websocket to an independent server so it can be scaled independently from the rest of the project.
 - We have messaging system in our project therefore we must add a mechanism that allow us to restrict the user from sending messages.
 - Add More tests to have full coverage.
+- Add an endpoint to black list the signed-out users, can be either by using redis or using a map.

@@ -29,15 +29,16 @@ func GetRoutePath(path string) string {
 }
 
 func GenSuperAdminCookie(w http.ResponseWriter, r *http.Request) error {
-	user := &models.User{
+	user := models.User{
 		ModelBasicsTrackedDel: models.ModelBasicsTrackedDel{ID: 17},
 		Email:                 "texteemail@gmail.com",
 	}
-	token, err := auth.CreateJWT(*user, w, r)
+	accessToken, _, err := auth.GenerateAndSetTokens(user, w, r)
 	if err != nil {
 		return err
 	}
-	SetCookieForTesting(w, r, user, token)
+	// why we re-set again ? read this function doc's.
+	SetCookieForTesting(w, r, &user, accessToken)
 	return nil
 }
 
@@ -46,11 +47,12 @@ func GenCookieByUserId(w http.ResponseWriter, r *http.Request, userId uint) erro
 	if err := database.DB.First(&user, userId).Error; err != nil {
 		return err
 	}
-	token, err := auth.CreateJWT(user, w, r)
+	accessToken, _, err := auth.GenerateAndSetTokens(user, w, r)
 	if err != nil {
 		return err
 	}
-	SetCookieForTesting(w, r, &user, token)
+	// why we re-set again ? read this function doc's.
+	SetCookieForTesting(w, r, &user, accessToken)
 	return nil
 }
 
@@ -58,7 +60,7 @@ func GenCookieByUserId(w http.ResponseWriter, r *http.Request, userId uint) erro
 //
 // theoretically it should not be causing any problem to use any of them
 // but "New" has issue and not setting a new cookie on testing server, for that reason this function is created.
-func SetCookieForTesting(w http.ResponseWriter, r *http.Request, user *models.User, token string) (*sessions.Session, error) {
+func SetCookieForTesting(w http.ResponseWriter, r *http.Request, user *models.User, accessToken string) (*sessions.Session, error) {
 	session, err := auth.CookiesStore.Get(r, "session_token")
 	if err != nil {
 		return nil, err
@@ -74,7 +76,7 @@ func SetCookieForTesting(w http.ResponseWriter, r *http.Request, user *models.Us
 
 	session.Values["userId"] = user.ID
 	session.Values["email"] = user.Email
-	session.Values["token"] = token
+	session.Values["access_token"] = accessToken
 
 	err = session.Save(r, w)
 	if err != nil {

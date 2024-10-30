@@ -25,7 +25,7 @@ var Authenticate = middlewares.Authenticate
 var AuthorizeAdmin = middlewares.AuthorizeAdmin
 var Pagination = middlewares.PaginationMiddleware
 
-func invalidCategoryIdErr(id uint) error {
+func invalidCategoryIdErr(id string) error {
 	return errors.NewInvalidIDError("category", id)
 }
 
@@ -37,9 +37,9 @@ func (h *Handler) RegisterRoutes(router *http.ServeMux) {
 }
 
 func (h *Handler) GetCategoryById(w http.ResponseWriter, r *http.Request){
-	Id, err := utils.GetValidateId(r, constants.IdUrlPathKey)
+	Id, receivedStr, err := utils.GetValidateId(r, constants.IdUrlPathKey)
 	if err != nil {
-		utils.WriteError(w, http.StatusBadRequest, invalidCategoryIdErr(*Id))
+		utils.WriteError(w, http.StatusBadRequest, invalidCategoryIdErr(receivedStr))
 		return
 	}
 
@@ -98,9 +98,9 @@ func (h *Handler) UpdateCategory(w http.ResponseWriter, r *http.Request) {
 
 	catePayload.TrimStrs()
 	model := catePayload.ToModel()
-	Id, err := utils.GetValidateId(r, constants.IdUrlPathKey)
+	Id, receivedStr, err := utils.GetValidateId(r, constants.IdUrlPathKey)
 	if err != nil {
-		utils.WriteError(w, http.StatusBadRequest, invalidCategoryIdErr(*Id))
+		utils.WriteError(w, http.StatusBadRequest, invalidCategoryIdErr(receivedStr))
 		return
 	}
 

@@ -15,7 +15,8 @@ type Config struct {
 	DBPassword                string
 	DBName                    string
 	DBAddress                 string
-	JWT_EXPIRATION_IN_SECONDS string
+	ACCESS_JWT_EXPIRATION_IN_SECONDS string
+	REFRESH_JWT_EXPIRATION_IN_SECONDS string
 	JWT_SECRET                string
 	Env                       string
 	CLOUDINARY_APIKEY         string
@@ -54,7 +55,8 @@ func initConfig() Config {
 			getEnv("DB_PORT", ""), ""),
 		AUTH_STORE_KEY:            getEnv("AUTH_STORE_KEY", ""),
 		JWT_SECRET:                getEnv("JWT_SECRET", ""),
-		JWT_EXPIRATION_IN_SECONDS: getEnv("JWT_EXPIRATION_IN_SECONDS", ""),
+		ACCESS_JWT_EXPIRATION_IN_SECONDS: getEnv("ACCESS_JWT_EXPIRATION_IN_SECONDS", ""),
+		REFRESH_JWT_EXPIRATION_IN_SECONDS:  getEnv("REFRESH_JWT_EXPIRATION_IN_SECONDS", ""),
 	}
 }
 

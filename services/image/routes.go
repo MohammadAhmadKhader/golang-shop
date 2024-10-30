@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	appErrors "main.go/errors"
 	"main.go/constants"
 	"main.go/middlewares"
 	"main.go/pkg/utils"
@@ -37,9 +38,9 @@ func (h *Handler) RegisterRoutes(router *http.ServeMux) {
 }
 
 func (h *Handler) DeleteProductImageById(w http.ResponseWriter, r *http.Request) {
-	imageId, err := utils.GetValidateId(r, "imageId")
+	imageId, receivedStr,err := utils.GetValidateId(r, "imageId")
 	if err != nil {
-		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid id"))
+		utils.WriteError(w, http.StatusBadRequest, appErrors.NewInvalidIDError("image", receivedStr))
 		return
 	}
 
@@ -53,9 +54,9 @@ func (h *Handler) DeleteProductImageById(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *Handler) SetImageProductAsMain(w http.ResponseWriter, r *http.Request) {
-	imageId, err := utils.GetValidateId(r, "imageId")
+	imageId, receivedStr,err := utils.GetValidateId(r, "imageId")
 	if err != nil {
-		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid id"))
+		utils.WriteError(w, http.StatusBadRequest, appErrors.NewInvalidIDError("image", receivedStr))
 		return
 	}
 
@@ -80,9 +81,9 @@ func (h *Handler) SetImageProductAsMain(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h *Handler) CreateImagesForProduct(w http.ResponseWriter, r *http.Request) {
-	productId, err := utils.GetValidateId(r, constants.IdUrlPathKey)
+	productId, receivedStr,err := utils.GetValidateId(r, constants.IdUrlPathKey)
 	if err != nil {
-		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid id"))
+		utils.WriteError(w, http.StatusBadRequest, appErrors.NewInvalidIDError("image", receivedStr))
 		return
 	}
 
@@ -134,9 +135,9 @@ func (h *Handler) CreateImagesForProduct(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *Handler) UpdateImageById(w http.ResponseWriter, r *http.Request) {
-	imageId, err := utils.GetValidateId(r, "imageId")
+	imageId, receivedStr, err := utils.GetValidateId(r, "imageId")
 	if err != nil {
-		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid id"))
+		utils.WriteError(w, http.StatusBadRequest, appErrors.NewInvalidIDError("image", receivedStr))
 		return
 	}
 
