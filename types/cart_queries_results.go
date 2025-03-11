@@ -23,6 +23,5 @@ type RespCartItem struct {
 }
 
 type RespCartShape struct {
-	Id        uint           `json:"id"`
 	CartItems []RespCartItem `json:"cartItems"`
 }

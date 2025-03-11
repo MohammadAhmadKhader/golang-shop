@@ -44,6 +44,7 @@ func (g GenericRepository[TModel]) GetAll(page, limit int) ([]TModel, int64, []e
 	var wg sync.WaitGroup
 	wg.Add(2)
 
+	var mu sync.Mutex
 	errors := make([]error, 0)
 
 	// get models
@@ -51,7 +52,9 @@ func (g GenericRepository[TModel]) GetAll(page, limit int) ([]TModel, int64, []e
 		defer wg.Done()
 		offset := utils.CalculateOffset(page, limit)
 		if err := g.DB.Order("created_at DESC").Offset(offset).Limit(limit).Find(&models).Error; err != nil {
+			mu.Lock()
 			errors = append(errors, err)
+			mu.Unlock()
 		}
 	}()
 
@@ -59,7 +62,9 @@ func (g GenericRepository[TModel]) GetAll(page, limit int) ([]TModel, int64, []e
 	go func() {
 		defer wg.Done()
 		if err := g.DB.Model(&model).Count(&count).Error; err != nil {
+			mu.Lock()
 			errors = append(errors, err)
+			mu.Unlock()
 		}
 	}()
 

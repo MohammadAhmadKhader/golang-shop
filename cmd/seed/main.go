@@ -7,10 +7,15 @@ import (
 func main() {
 	setFakeUsers := false
 	setFakeProducts := false
-	setFakeReviews := false
+	setFakeReviews := true
+	setFakeCategories := false
 
 	if setFakeUsers {
 		seed_data.SeedUsers()
+	}
+
+	if setFakeCategories {
+		seed_data.SeedCategories()
 	}
 
 	if setFakeProducts {
@@ -20,5 +25,4 @@ func main() {
 	if setFakeReviews {
 		seed_data.SeedReviews()
 	}
-
 }

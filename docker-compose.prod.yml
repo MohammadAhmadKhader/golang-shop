@@ -5,6 +5,8 @@ services:
       - .env
     environment:
       - env=production
+      - DB_HOST=db
+      - DB_PASSWORD=123456
     
   db:
     env_file:

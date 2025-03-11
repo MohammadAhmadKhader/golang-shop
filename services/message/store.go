@@ -117,7 +117,7 @@ func (s *Store) GetByUsersIds(userId uint, to uint, lastMessageId uint, cursor t
 		if message.From == userId {
 			message.FromUser = &user
 		}
-		if message.To == userId {
+		if message.To == to {
 			message.ToUser = &user
 		}
 	}

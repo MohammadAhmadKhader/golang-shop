@@ -51,6 +51,7 @@ func (c *Client) readMessage() {
 
 	c.conn.SetPongHandler(c.pongHandler)
 
+	// read messages from client
 	for {
 		var event Event
 		err := c.conn.ReadJSON(&event)
@@ -137,6 +138,7 @@ func (c *Client) runPing() {
 	}
 }
 
+// disallow writes from the client
 func (c *Client) runPongAndDisallowWrites() {
 	c.conn.SetPongHandler(c.pongHandler)
 
@@ -151,6 +153,36 @@ func (c *Client) runPongAndDisallowWrites() {
 		c.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(1008, "Read-only users not allowed to write."))
 		c.conn.Close()
 		break
+	}
+}
+
+func (c *Client) writeMessageGuest() {
+	defer func() {
+		c.manager.deleteClient(c)
+	}()
+
+	for {
+		select {
+		case message, ok := <-c.eventsChan:
+			if !ok {
+				return
+			}
+
+			if message.Type != ProductsStockUpdate {
+				log.Println("Not allowed to receive events except for ProductsStockUpdate")
+				return
+			}
+
+			messageBytes, err := json.Marshal(message)
+			if err != nil {
+				log.Println(err)
+				break
+			}
+			if err := c.conn.WriteMessage(websocket.TextMessage, messageBytes); err != nil {
+				log.Println("an error has occurred during sending message: ", err)
+				return
+			}
+		}
 	}
 }
 

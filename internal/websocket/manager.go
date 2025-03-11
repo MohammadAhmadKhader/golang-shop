@@ -75,7 +75,8 @@ func (m *Manager) serveWS(w http.ResponseWriter, r *http.Request) {
 		go client.readMessage()
 		go client.writeMessage()
 	} else {
-		go client.runHeartBeat()
+		client.runHeartBeat()
+		go client.writeMessageGuest()
 	}
 }
 
@@ -137,12 +138,13 @@ func (m *Manager) BroadcastCUMessage(message models.Message, userIds []uint, eve
 
 	m.registedClientsLock.RLock()
 	defer m.registedClientsLock.RUnlock()
-	for client := range GlobalManager.clients {
-		err := client.conn.WriteJSON(NewEvent(eventType, productMsg))
-		if err != nil {
-			log.Println(err)
-			GlobalManager.deleteClient(client)
-			return
+	
+	for _, userId := range userIds {
+		clients, isOk := GlobalManager.registedClients[userId]
+		if isOk {
+			for _, client := range clients {
+				client.eventsChan <- NewEvent(eventType, productMsg)
+			}
 		}
 	}
 }
@@ -161,12 +163,7 @@ func (m *Manager) BroadcastDMessage(payload DeleteMessagePayload, userIds []uint
 		clients, isOk := GlobalManager.registedClients[userId]
 		if isOk {
 			for _, client := range clients {
-				err := client.conn.WriteJSON(NewEvent(MessageDeleted,deletePayload))
-				if err != nil {
-					log.Println(err)
-					GlobalManager.deleteClient(client)
-					return
-				}	
+				client.eventsChan <- NewEvent(MessageDeleted,deletePayload)
 			}
 		}
 	}
@@ -182,11 +179,6 @@ func (m *Manager) BroadcastProductQtyChange(products []types.ProductAmountDiscou
 	GlobalManager.clientsLock.RLock()
 	defer GlobalManager.clientsLock.RUnlock()
 	for client := range GlobalManager.clients {
-		err := client.conn.WriteJSON(NewProductStockUpdateEvent(productsMsg))
-		if err != nil {
-			log.Fatal(err)
-			GlobalManager.deleteClient(client)
-			return
-		}
+		client.eventsChan <- NewProductStockUpdateEvent(productsMsg)
 	}
 }

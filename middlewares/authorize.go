@@ -31,12 +31,17 @@ func CreateAuthorizationMiddleware(allowedRoles []types.UserRole, userFetcher ty
 				return
 			}
 
+			hasAllowedRole := false
 			for _, userRole := range userRoles {
 				isContaining := slices.Contains(allowedRoles, types.UserRole(userRole.Role.Name))
-				if !isContaining {
-					auth.Unauthorized(w)
-					return
+				if isContaining {
+					hasAllowedRole = true
 				}
+			}
+
+			if !hasAllowedRole {
+				auth.Unauthorized(w)
+				return
 			}
 
 			next.ServeHTTP(w, r)

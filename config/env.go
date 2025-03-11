@@ -2,8 +2,10 @@ package config
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
@@ -67,10 +69,20 @@ func getEnv(key, fallback string) string {
 		return envs[key]
 	}
 
+	// for docker env
+	val, exists := os.LookupEnv(key)
+	if exists {
+		return val
+	}
+
 	return fallback
 }
 
 func loadEnvFile() error {
+	if isDocker() {
+		return nil
+	}
+
 	err := godotenv.Load()
 	if err != nil {
 		err = handleTestEnv()
@@ -79,11 +91,12 @@ func loadEnvFile() error {
 		}
 		return nil
 	}
+	
 	envVariables, err := godotenv.Read()
 	if err != nil {
 		return err
 	}
-
+	
 	envs = envVariables
 	return nil
 }
@@ -109,4 +122,14 @@ func handleTestEnv() error {
 
 	envs = envVariables
 	return err
+}
+
+func isDocker() bool {
+	if _, err := os.Stat("/proc/1/cgroup"); err == nil {
+		content, err := os.ReadFile("/proc/1/cgroup")
+		if err == nil && strings.Contains(string(content), "docker") {
+			return true
+		}
+	}
+	return false
 }

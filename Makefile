@@ -36,3 +36,6 @@ swarm-up:
 
 swarm-down:
 	docker stack rm golang-shop-app
+
+test-nginx:
+	bash -c "./curlreqs.sh"

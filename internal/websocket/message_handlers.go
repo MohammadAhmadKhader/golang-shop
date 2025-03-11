@@ -2,8 +2,8 @@ package websocket
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
-
 
 	"main.go/pkg/utils"
 	"main.go/types"
@@ -15,6 +15,10 @@ func HandleMessageCreate(event Event, client *Client) error {
 	if err != nil {
 		log.Println("Error during converting from json to user message payload")
 		return err
+	}
+
+	if userMessage.From != *client.id {
+		return fmt.Errorf("sender id does not match the client id")
 	}
 
 	msg := userMessage.ToCreatePayload()
@@ -42,6 +46,10 @@ func HandleMessageUpdate(event Event, client *Client) error {
 	if err != nil {
 		log.Println("Error during converting from json to user message payload")
 		return err
+	}
+
+	if userMessage.From != *client.id {
+		return fmt.Errorf("sender id does not match the client id")
 	}
 
 	msg := userMessage.ToUpdatePayload()

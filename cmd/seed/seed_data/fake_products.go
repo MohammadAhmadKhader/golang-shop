@@ -14,18 +14,26 @@ func SeedProducts() {
 			prodDesc := gofakeit.ProductDescription()
 			imagesNumber := gofakeit.UintRange(1,2)
 
-			isMain := true
 			for j := 0;j < int(imagesNumber); j++ {
-				images = append(images, models.Image{
-					IsMain:&isMain,
-					ImageUrl: gofakeit.ImageURL(600,600),
-					ImagePublicId: gofakeit.UUID(),
-				})
-				isMain = false
+				if j == 0 {
+					isMain := true
+					images = append(images, models.Image{
+						IsMain: &isMain,
+						ImageUrl: gofakeit.ImageURL(600,600),
+						ImagePublicId: gofakeit.UUID(),
+					})
+				} else {
+					isMain := false
+					images = append(images, models.Image{
+						IsMain: &isMain,
+						ImageUrl: gofakeit.ImageURL(600,600),
+						ImagePublicId: gofakeit.UUID(),
+					})
+				}
 			}
 			
 			product := models.Product{
-				Name: gofakeit.ProductName(),
+				Name: capStrLength(gofakeit.ProductName(), 32),
 				Description: &prodDesc,
 				Quantity: gofakeit.UintRange(10,300),
 				CategoryID: gofakeit.UintRange(1,17),
@@ -40,4 +48,12 @@ func SeedProducts() {
 			}
 		}
 
+}
+
+func capStrLength(str string, maxLength int) string {
+	if len(str) > maxLength {
+		return str[0:maxLength-1]
+	}
+
+	return str
 }

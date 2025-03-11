@@ -5,6 +5,7 @@ services:
       - .env
     environment:
       - env=development
+      - DB_PORT=:3306
     
   db:
     env_file:

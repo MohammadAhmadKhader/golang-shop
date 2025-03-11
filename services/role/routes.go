@@ -40,7 +40,7 @@ func (h *Handler) RegisterRoutes(router *http.ServeMux) {
 func (h *Handler) GetAllRoles(w http.ResponseWriter, r *http.Request) {
 	pagination := middlewares.GetPagination(r)
 
-	orders, count, err := h.store.GetAllRoles(pagination.Page, pagination.Limit)
+	roles, count, err := h.store.GetAllRoles(pagination.Page, pagination.Limit)
 	if err != nil {
 		utils.WriteError(w, http.StatusBadRequest, err)
 		return
@@ -50,7 +50,7 @@ func (h *Handler) GetAllRoles(w http.ResponseWriter, r *http.Request) {
 		"page":pagination.Page,
 		"limit":pagination.Limit,
 		"count": count,
-		"orders": orders,
+		"roles": roles,
 	})
 }
 

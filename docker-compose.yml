@@ -1,8 +1,10 @@
 version: '3'
 services:
   golang-shop-app:
-    image: mohammadkhader/golang-shop-image:latest
-    build: .
+    image: golang-shop-app:latest
+    build: 
+      no_cache: true
+      context: .
     volumes:
       - .:/app:ro
     restart: on-failure
@@ -16,15 +18,15 @@ services:
         delay: 5s
     depends_on:
       - db
-    #depends_on:
-    #  db:
-    #    condition: service_healthy
+    # depends_on:
+    #   db:
+    #     condition: service_healthy
     #* was removed because does not work with docker-swarm       
   
   db:
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
-      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-123456}
+      MYSQL_DATABASE: ${DB_NAME:-golang_shop}
       #* this wont work with swarm, must pass secrets as external or type them hard coded here.
     image: mysql
     restart: always
@@ -34,8 +36,8 @@ services:
       - mysql_data:/var/lib/mysql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 3s
-      timeout: 2s
+      interval: 5s
+      timeout: 3s
       retries: 5
    
   web:

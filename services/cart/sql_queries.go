@@ -27,9 +27,5 @@ func convertRowsToResponse(rows []types.GetCartRow) *types.RespCartShape {
 
 	respShape.CartItems = cartItems
 
-	if len(rows) != 0 {
-		respShape.Id = rows[0].ID
-	}
-
 	return &respShape
 }
